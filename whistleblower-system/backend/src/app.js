@@ -4,21 +4,22 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 require('dotenv').config();
 
-// Import routes
 const whistleblowerRoutes = require('./routes/whistleblower');
+const investigatorRoutes = require('./routes/investigator');
 const adminRoutes = require('./routes/admin');
 
-// Initialize express app
+// Create Express app
 const app = express();
 
-// Middleware
-app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS
-app.use(morgan('dev')); // Logging
-app.use(express.json()); // Parse JSON request body
+// Apply middleware
+app.use(helmet());
+app.use(cors());
+app.use(morgan('dev'));
+app.use(express.json());
 
-// Routes
+// Define routes
 app.use('/api/whistleblower', whistleblowerRoutes);
+app.use('/api/investigator', investigatorRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Health check endpoint

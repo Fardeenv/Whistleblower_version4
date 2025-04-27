@@ -1,0 +1,130 @@
+package Whistleblower;
+
+import org.hyperledger.fabric.contract.Context;
+import org.hyperledger.fabric.contract.ContractInterface;
+import org.hyperledger.fabric.contract.annotation.Contract;
+import org.hyperledger.fabric.contract.annotation.Default;
+import org.hyperledger.fabric.contract.annotation.Info;
+import org.hyperledger.fabric.contract.annotation.Transaction;
+import org.hyperledger.fabric.shim.ChaincodeException;
+import org.hyperledger.fabric.shim.ChaincodeStub;
+import com.owlike.genson.Genson;
+
+@Contract(
+    name = "Whistleblower",
+    info = @Info(
+        title = "Whistleblower Contract",
+        description = "A whistleblower reporting system on blockchain",
+        version = "1.0"
+    )
+)
+@Default
+public class WhistleblowerContract implements ContractInterface {
+
+    private final Genson genson = new Genson();
+
+    private enum WhistleblowerErrors {
+        REPORT_NOT_FOUND,
+        REPORT_ALREADY_EXISTS,
+        INVALID_ACCESS
+    }
+
+    @Transaction()
+    public void initLedger(final Context ctx) {
+        ChaincodeStub stub = ctx.getStub();
+
+        Whistleblower report = new Whistleblower(
+            "1", 
+            "Sample Report", 
+            "This is a sample whistleblower report for initialization", 
+            "anonymous", 
+            "2025-04-13", 
+            "pending"
+        );
+        
+        String reportState = genson.serialize(report);
+        stub.putStringState("1", reportState);
+        
+        System.out.println("Ledger Initialized with default whistleblower report.");
+    }
+
+    @Transaction()
+    public Whistleblower submitReport(
+            final Context ctx, 
+            final String id, 
+            final String title, 
+            final String description, 
+            final String submitter, 
+            final String date) {
+        
+        ChaincodeStub stub = ctx.getStub();
+        String reportState = stub.getStringState(id);
+
+        if (!reportState.isEmpty()) {
+            String errorMessage = String.format("Report with ID %s already exists", id);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_ALREADY_EXISTS.toString());
+        }
+
+        Whistleblower report = new Whistleblower(id, title, description, submitter, date, "pending");
+        reportState = genson.serialize(report);
+        stub.putStringState(id, reportState);
+
+        System.out.println("Report submitted: " + report.toString());
+        return report;
+    }
+
+    @Transaction()
+    public Whistleblower queryReportById(final Context ctx, final String id) {
+        ChaincodeStub stub = ctx.getStub();
+        String reportState = stub.getStringState(id);
+
+        if (reportState.isEmpty()) {
+            String errorMessage = String.format("Report with ID %s does not exist", id);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_NOT_FOUND.toString());
+        }
+
+        Whistleblower report = genson.deserialize(reportState, Whistleblower.class);
+        System.out.println("Report retrieved: " + report.toString());
+        return report;
+    }
+    
+    @Transaction()
+    public Whistleblower updateReportStatus(final Context ctx, final String id, final String newStatus) {
+        ChaincodeStub stub = ctx.getStub();
+        String reportState = stub.getStringState(id);
+
+        if (reportState.isEmpty()) {
+            String errorMessage = String.format("Report with ID %s does not exist", id);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_NOT_FOUND.toString());
+        }
+
+        Whistleblower oldReport = genson.deserialize(reportState, Whistleblower.class);
+        
+        // Create a new report with updated status
+        Whistleblower newReport = new Whistleblower(
+            oldReport.getId(),
+            oldReport.getTitle(),
+            oldReport.getDescription(),
+            oldReport.getSubmitter(),
+            oldReport.getDate(),
+            newStatus
+        );
+        
+        String newReportState = genson.serialize(newReport);
+        stub.putStringState(id, newReportState);
+
+        System.out.println("Report status updated: " + newReport.toString());
+        return newReport;
+    }
+    
+    @Transaction()
+    public String getAllReports(final Context ctx) {
+        ChaincodeStub stub = ctx.getStub();
+        
+        // Get all reports between empty keys - effectively gets all reports
+        return stub.getStateByRange("", "").toString();
+    }
+}

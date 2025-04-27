@@ -1,7 +1,7 @@
 {
   "name": "whistleblower-api",
-  "version": "1.0.0",
-  "description": "REST API for Whistleblower application",
+  "version": "2.0.0",
+  "description": "REST API for Whistleblower application with investigator support",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -10,17 +10,19 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "axios": "^1.6.0",
     "cors": "^2.8.5",
     "dotenv": "^10.0.0",
-    "express": "^4.21.2",
-    "fabric-ca-client": "^2.2.20",
-    "fabric-network": "^2.2.20",
+    "express": "^4.17.1",
+    "fabric-ca-client": "^2.2.4",
+    "fabric-network": "^2.2.4",
     "helmet": "^4.6.0",
     "jsonwebtoken": "^8.5.1",
     "morgan": "^1.10.0",
+    "socket.io": "^4.8.1",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.12"
   }
 }
