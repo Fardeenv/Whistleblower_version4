@@ -1,23 +1,55 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { connectToNetwork, disconnectFromNetwork } = require('../fabric/network');
 const router = express.Router();
 
+// Configure multer storage for voice note uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/audio');
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max file size
+  fileFilter: (req, file, cb) => {
+    // Accept only audio files
+    if (file.mimetype.startsWith('audio/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio files are allowed!'), false);
+    }
+  }
+});
+
 // Submit a new whistleblower report
-router.post('/reports', async (req, res, next) => {
+router.post('/reports', upload.single('voiceNote'), async (req, res, next) => {
   try {
     const { 
       title, 
       description, 
       submitter = 'anonymous',
       criticality = 3, // Default to medium criticality
-      rewardWallet = ''
+      rewardWallet = '',
+      department = '',
+      location = '',
+      monetaryValue = '',
+      relationship = '',
+      encounter = '',
+      authoritiesAware = false
     } = req.body;
 
-    if (!title || !description) {
+    if (!title && !description && !req.file) {
       return res.status(400).json({ 
         error: 'Bad request', 
-        message: 'Title and description are required' 
+        message: 'Either title, description, or voice note is required' 
       });
     }
 
@@ -26,15 +58,32 @@ router.post('/reports', async (req, res, next) => {
     
     const { gateway, contract } = await connectToNetwork('admin');
     
+    // Handle voice note if uploaded
+    let voiceNote = '';
+    let hasVoiceNote = false;
+    
+    if (req.file) {
+      voiceNote = `/uploads/audio/${req.file.filename}`;
+      hasVoiceNote = true;
+    }
+    
     await contract.submitTransaction(
       'submitReport',
       id,
-      title,
-      description,
+      title || '',
+      description || '',
       submitter,
       date,
       criticality.toString(),
-      rewardWallet
+      rewardWallet,
+      voiceNote,
+      hasVoiceNote.toString(),
+      department,
+      location,
+      monetaryValue,
+      relationship,
+      encounter,
+      authoritiesAware.toString()
     );
     
     await disconnectFromNetwork(gateway);
@@ -53,9 +102,21 @@ router.post('/reports', async (req, res, next) => {
       date,
       status: 'pending',
       criticality,
-      rewardWallet
+      rewardWallet,
+      voiceNote,
+      hasVoiceNote,
+      department,
+      location,
+      monetaryValue,
+      relationship,
+      encounter,
+      authoritiesAware
     });
   } catch (error) {
+    if (req.file) {
+      // Clean up the file if there was an error
+      fs.unlinkSync(req.file.path);
+    }
     next(error);
   }
 });
@@ -80,6 +141,20 @@ router.get('/reports/:id', async (req, res, next) => {
       });
     }
     next(error);
+  }
+});
+
+// Serve voice note files
+router.get('/voice-notes/:filename', (req, res) => {
+  const filePath = path.join(__dirname, '../../uploads/audio', req.params.filename);
+  
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).json({
+      error: 'Not found',
+      message: 'Voice note file not found'
+    });
   }
 });
 

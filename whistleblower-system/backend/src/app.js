@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
 require('dotenv').config();
 
 const whistleblowerRoutes = require('./routes/whistleblower');
@@ -16,6 +17,9 @@ app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
+
+// Serve static files from the uploads directory
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Define routes
 app.use('/api/whistleblower', whistleblowerRoutes);

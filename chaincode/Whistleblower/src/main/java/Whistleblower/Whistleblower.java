@@ -27,16 +27,40 @@ public class Whistleblower {
     private final String status;
     
     @Property
-    private final int criticality; // 1-5 scale (5 = most critical)
+    private final int criticality;
     
     @Property
-    private final String rewardWallet; // Crypto wallet address for rewards
+    private final String rewardWallet;
     
     @Property
-    private final String assignedTo; // Investigator ID assigned to this report
+    private final String assignedTo;
     
     @Property
-    private final List<ChatMessage> chatHistory; // Chat history between whistleblower and investigator
+    private final List<ChatMessage> chatHistory;
+    
+    @Property
+    private final String voiceNote;
+    
+    @Property
+    private final boolean hasVoiceNote;
+    
+    @Property
+    private final String department;
+    
+    @Property
+    private final String location;
+    
+    @Property
+    private final String monetaryValue;
+    
+    @Property
+    private final String relationship;
+    
+    @Property
+    private final String encounter;
+    
+    @Property
+    private final boolean authoritiesAware;
     
     public Whistleblower(
             @JsonProperty("id") final String id,
@@ -48,7 +72,15 @@ public class Whistleblower {
             @JsonProperty("criticality") final int criticality,
             @JsonProperty("rewardWallet") final String rewardWallet,
             @JsonProperty("assignedTo") final String assignedTo,
-            @JsonProperty("chatHistory") final List<ChatMessage> chatHistory) {
+            @JsonProperty("chatHistory") final List<ChatMessage> chatHistory,
+            @JsonProperty("voiceNote") final String voiceNote,
+            @JsonProperty("hasVoiceNote") final boolean hasVoiceNote,
+            @JsonProperty("department") final String department,
+            @JsonProperty("location") final String location,
+            @JsonProperty("monetaryValue") final String monetaryValue,
+            @JsonProperty("relationship") final String relationship,
+            @JsonProperty("encounter") final String encounter,
+            @JsonProperty("authoritiesAware") final boolean authoritiesAware) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -59,6 +91,14 @@ public class Whistleblower {
         this.rewardWallet = rewardWallet;
         this.assignedTo = assignedTo;
         this.chatHistory = chatHistory != null ? chatHistory : new ArrayList<>();
+        this.voiceNote = voiceNote;
+        this.hasVoiceNote = hasVoiceNote;
+        this.department = department;
+        this.location = location;
+        this.monetaryValue = monetaryValue;
+        this.relationship = relationship;
+        this.encounter = encounter;
+        this.authoritiesAware = authoritiesAware;
     }
     
     // Getters
@@ -72,6 +112,14 @@ public class Whistleblower {
     public String getRewardWallet() { return rewardWallet; }
     public String getAssignedTo() { return assignedTo; }
     public List<ChatMessage> getChatHistory() { return chatHistory; }
+    public String getVoiceNote() { return voiceNote; }
+    public boolean getHasVoiceNote() { return hasVoiceNote; }
+    public String getDepartment() { return department; }
+    public String getLocation() { return location; }
+    public String getMonetaryValue() { return monetaryValue; }
+    public String getRelationship() { return relationship; }
+    public String getEncounter() { return encounter; }
+    public boolean getAuthoritiesAware() { return authoritiesAware; }
     
     @Override
     public boolean equals(final Object obj) {
@@ -87,18 +135,28 @@ public class Whistleblower {
                criticality == other.criticality &&
                Objects.equals(rewardWallet, other.rewardWallet) &&
                Objects.equals(assignedTo, other.assignedTo) &&
-               Objects.equals(chatHistory, other.chatHistory);
+               Objects.equals(chatHistory, other.chatHistory) &&
+               Objects.equals(voiceNote, other.voiceNote) &&
+               hasVoiceNote == other.hasVoiceNote &&
+               Objects.equals(department, other.department) &&
+               Objects.equals(location, other.location) &&
+               Objects.equals(monetaryValue, other.monetaryValue) &&
+               Objects.equals(relationship, other.relationship) &&
+               Objects.equals(encounter, other.encounter) &&
+               authoritiesAware == other.authoritiesAware;
     }
     
     @Override
     public int hashCode() {
         return Objects.hash(id, title, description, submitter, date, status, 
-                          criticality, rewardWallet, assignedTo, chatHistory);
+                          criticality, rewardWallet, assignedTo, chatHistory,
+                          voiceNote, hasVoiceNote, department, location,
+                          monetaryValue, relationship, encounter, authoritiesAware);
     }
     
     @Override
     public String toString() {
-        return String.format("Whistleblower [id=%s, title=%s, submitter=%s, date=%s, status=%s, criticality=%d]", 
-                           id, title, submitter, date, status, criticality);
+        return String.format("Whistleblower [id=%s, title=%s, submitter=%s, date=%s, status=%s, criticality=%d, hasVoiceNote=%b]", 
+                           id, title, submitter, date, status, criticality, hasVoiceNote);
     }
 }

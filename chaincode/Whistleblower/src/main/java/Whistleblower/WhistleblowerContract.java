@@ -12,14 +12,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.stream.Collectors;
 
 @Contract(
     name = "Whistleblower",
     info = @Info(
         title = "Whistleblower Contract",
         description = "A whistleblower reporting system on blockchain",
-        version = "2.0"
+        version = "3.0"
     )
 )
 @Default
@@ -49,7 +48,15 @@ public class WhistleblowerContract implements ContractInterface {
             3, // medium criticality
             "", // no reward wallet
             "", // not assigned
-            chatHistory
+            chatHistory,
+            "", // no voice note
+            false, // hasVoiceNote
+            "", // department
+            "", // location
+            "", // monetary value
+            "", // relationship
+            "", // encounter
+            false // authorities aware
         );
         
         String reportState = genson.serialize(report);
@@ -66,7 +73,15 @@ public class WhistleblowerContract implements ContractInterface {
             final String submitter, 
             final String date,
             final int criticality,
-            final String rewardWallet) {
+            final String rewardWallet,
+            final String voiceNote,
+            final boolean hasVoiceNote,
+            final String department,
+            final String location,
+            final String monetaryValue,
+            final String relationship,
+            final String encounter,
+            final boolean authoritiesAware) {
         
         ChaincodeStub stub = ctx.getStub();
         String reportState = stub.getStringState(id);
@@ -88,7 +103,15 @@ public class WhistleblowerContract implements ContractInterface {
             criticality,
             rewardWallet,
             "", // not assigned yet
-            chatHistory
+            chatHistory,
+            voiceNote,
+            hasVoiceNote,
+            department,
+            location,
+            monetaryValue,
+            relationship,
+            encounter,
+            authoritiesAware
         );
         
         reportState = genson.serialize(report);
@@ -139,7 +162,15 @@ public class WhistleblowerContract implements ContractInterface {
             oldReport.getCriticality(),
             oldReport.getRewardWallet(),
             investigatorId, // Assign the investigator
-            oldReport.getChatHistory()
+            oldReport.getChatHistory(),
+            oldReport.getVoiceNote(),
+            oldReport.getHasVoiceNote(),
+            oldReport.getDepartment(),
+            oldReport.getLocation(),
+            oldReport.getMonetaryValue(),
+            oldReport.getRelationship(),
+            oldReport.getEncounter(),
+            oldReport.getAuthoritiesAware()
         );
         
         String newReportState = genson.serialize(newReport);
@@ -173,7 +204,15 @@ public class WhistleblowerContract implements ContractInterface {
             oldReport.getCriticality(),
             oldReport.getRewardWallet(),
             oldReport.getAssignedTo(),
-            oldReport.getChatHistory()
+            oldReport.getChatHistory(),
+            oldReport.getVoiceNote(),
+            oldReport.getHasVoiceNote(),
+            oldReport.getDepartment(),
+            oldReport.getLocation(),
+            oldReport.getMonetaryValue(),
+            oldReport.getRelationship(),
+            oldReport.getEncounter(),
+            oldReport.getAuthoritiesAware()
         );
         
         String newReportState = genson.serialize(newReport);
@@ -218,7 +257,15 @@ public class WhistleblowerContract implements ContractInterface {
             report.getCriticality(),
             report.getRewardWallet(),
             report.getAssignedTo(),
-            chatHistory
+            chatHistory,
+            report.getVoiceNote(),
+            report.getHasVoiceNote(),
+            report.getDepartment(),
+            report.getLocation(),
+            report.getMonetaryValue(),
+            report.getRelationship(),
+            report.getEncounter(),
+            report.getAuthoritiesAware()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
@@ -269,7 +316,15 @@ public class WhistleblowerContract implements ContractInterface {
             report.getCriticality(),
             report.getRewardWallet(),
             report.getAssignedTo(),
-            updatedChatHistory
+            updatedChatHistory,
+            report.getVoiceNote(),
+            report.getHasVoiceNote(),
+            report.getDepartment(),
+            report.getLocation(),
+            report.getMonetaryValue(),
+            report.getRelationship(),
+            report.getEncounter(),
+            report.getAuthoritiesAware()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
@@ -317,7 +372,15 @@ public class WhistleblowerContract implements ContractInterface {
             report.getCriticality(),
             report.getRewardWallet(),
             report.getAssignedTo(),
-            report.getChatHistory()
+            report.getChatHistory(),
+            report.getVoiceNote(),
+            report.getHasVoiceNote(),
+            report.getDepartment(),
+            report.getLocation(),
+            report.getMonetaryValue(),
+            report.getRelationship(),
+            report.getEncounter(),
+            report.getAuthoritiesAware()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
