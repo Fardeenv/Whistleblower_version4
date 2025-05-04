@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getReportsByStatus, assignReportToSelf } from '../api/investigator';
+import { getReportsByStatus, investigateReport } from '../api/investigator';
 import ReportList from '../components/ReportList';
+import { hasRole } from '../services/auth';
 import { toast } from 'react-toastify';
 
 const ReportsPage = () => {
@@ -10,6 +11,7 @@ const ReportsPage = () => {
   const [error, setError] = useState(null);
   const [activeStatus, setActiveStatus] = useState('pending');
   const navigate = useNavigate();
+  const isInvestigator = hasRole('investigator');
   
   useEffect(() => {
     const fetchReports = async () => {
@@ -32,66 +34,62 @@ const ReportsPage = () => {
     setActiveStatus(status);
   };
   
-  const handleAssign = async (reportId) => {
+  const handleInvestigate = async (reportId) => {
     try {
       setLoading(true);
-      await assignReportToSelf(reportId);
-      toast.success('Report assigned to you successfully');
+      await investigateReport(reportId);
+      toast.success('Report assigned to you for investigation');
       navigate(`/reports/${reportId}`);
     } catch (err) {
-      toast.error(err.message || 'Failed to assign report');
+      toast.error(err.message || 'Failed to investigate report');
     } finally {
       setLoading(false);
     }
   };
   
+  if (loading && reports.length === 0) {
+    return <div className="loading container">Loading reports...</div>;
+  }
+  
+  if (error && reports.length === 0) {
+    return <div className="error-message container">{error}</div>;
+  }
+  
   return (
-    <>
-      <div className="page-header">
-        <h1>Reports</h1>
-        <div className="page-description">
-          <p>Review and manage all whistleblower reports</p>
-        </div>
-      </div>
+    <div className="reports-page container">
+      <h1>All Reports</h1>
       
       <div className="status-tabs">
         <button 
           className={`tab-button ${activeStatus === 'pending' ? 'active' : ''}`}
           onClick={() => handleStatusChange('pending')}
         >
-          ⏳ Pending
+          Pending
         </button>
         <button 
           className={`tab-button ${activeStatus === 'under_investigation' ? 'active' : ''}`}
           onClick={() => handleStatusChange('under_investigation')}
         >
-          🔍 Under Investigation
+          Under Investigation
         </button>
         <button 
           className={`tab-button ${activeStatus === 'completed' ? 'active' : ''}`}
           onClick={() => handleStatusChange('completed')}
         >
-          ✅ Completed
+          Completed
         </button>
       </div>
       
-      {loading && reports.length === 0 ? (
-        <div className="loading">
-          <div className="loading-spinner"></div>
-          <p>Loading reports...</p>
-        </div>
-      ) : error && reports.length === 0 ? (
-        <div className="error-message">{error}</div>
+      {loading ? (
+        <div className="loading">Refreshing reports...</div>
       ) : (
-        <div className="card">
-          <ReportList 
-            reports={reports} 
-            showActions={activeStatus === 'pending'}
-            onAssign={handleAssign}
-          />
-        </div>
+        <ReportList 
+          reports={reports} 
+          showActions={isInvestigator && activeStatus === 'pending'}
+          onInvestigate={handleInvestigate}
+        />
       )}
-    </>
+    </div>
   );
 };
 

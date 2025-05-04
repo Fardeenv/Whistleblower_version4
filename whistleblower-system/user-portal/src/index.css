@@ -804,3 +804,153 @@ textarea {
    gap: 10px;
  }
 }
+/* Voice Recorder */
+.voice-recorder {
+  margin: 15px 0;
+}
+
+.record-button {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: var(--secondary-color);
+  color: white;
+  border: none;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-speed);
+  box-shadow: var(--box-shadow);
+}
+
+.record-button:hover {
+  background-color: #e6005f;
+  transform: scale(1.05);
+}
+
+.record-button.recording {
+  background-color: var(--danger-color);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 89, 94, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(255, 89, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 89, 94, 0);
+  }
+}
+
+.recorder-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.recording-time {
+  display: flex;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.recording-indicator {
+  width: 10px;
+  height: 10px;
+  background-color: var(--danger-color);
+  border-radius: 50%;
+  margin-right: 10px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+.recording-playback {
+  background-color: #f8f8f8;
+  border-radius: var(--border-radius);
+  padding: 15px;
+}
+
+.recording-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.recording-duration {
+  font-weight: 500;
+}
+
+.playback-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.playback-button, .delete-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-speed);
+}
+
+.playback-button:hover, .delete-button:hover {
+  background-color: var(--primary-dark);
+  transform: scale(1.05);
+}
+
+.delete-button {
+  background-color: var(--danger-color);
+}
+
+.delete-button:hover {
+  background-color: #e63946;
+}
+
+/* Reopen Reasons */
+.reopen-reasons {
+  margin: 15px 0;
+  background-color: #ffe8cc;
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.reopen-reasons h4 {
+  color: #e67e22;
+  margin-bottom: 10px;
+}
+
+.reopen-reasons ul {
+  margin-left: 20px;
+}
+
+.reopen-reasons li {
+  margin-bottom: 5px;
+}
+
+.reopened-badge {
+  display: inline-block;
+  background-color: #fff3cd;
+  color: #e67e22;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 10px;
+}

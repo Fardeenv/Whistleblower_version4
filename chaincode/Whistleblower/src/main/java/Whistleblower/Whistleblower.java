@@ -36,6 +36,9 @@ public class Whistleblower {
     private final String assignedTo;
     
     @Property
+    private final String assignedToName;
+    
+    @Property
     private final List<ChatMessage> chatHistory;
     
     @Property
@@ -62,6 +65,18 @@ public class Whistleblower {
     @Property
     private final boolean authoritiesAware;
     
+    @Property
+    private final String managementSummary;
+    
+    @Property
+    private final List<String> previousInvestigators;
+    
+    @Property
+    private final List<String> reopenReasons;
+    
+    @Property
+    private final boolean isReopened;
+    
     public Whistleblower(
             @JsonProperty("id") final String id,
             @JsonProperty("title") final String title,
@@ -72,6 +87,7 @@ public class Whistleblower {
             @JsonProperty("criticality") final int criticality,
             @JsonProperty("rewardWallet") final String rewardWallet,
             @JsonProperty("assignedTo") final String assignedTo,
+            @JsonProperty("assignedToName") final String assignedToName,
             @JsonProperty("chatHistory") final List<ChatMessage> chatHistory,
             @JsonProperty("voiceNote") final String voiceNote,
             @JsonProperty("hasVoiceNote") final boolean hasVoiceNote,
@@ -80,7 +96,11 @@ public class Whistleblower {
             @JsonProperty("monetaryValue") final String monetaryValue,
             @JsonProperty("relationship") final String relationship,
             @JsonProperty("encounter") final String encounter,
-            @JsonProperty("authoritiesAware") final boolean authoritiesAware) {
+            @JsonProperty("authoritiesAware") final boolean authoritiesAware,
+            @JsonProperty("managementSummary") final String managementSummary,
+            @JsonProperty("previousInvestigators") final List<String> previousInvestigators,
+            @JsonProperty("reopenReasons") final List<String> reopenReasons,
+            @JsonProperty("isReopened") final boolean isReopened) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -90,6 +110,7 @@ public class Whistleblower {
         this.criticality = criticality;
         this.rewardWallet = rewardWallet;
         this.assignedTo = assignedTo;
+        this.assignedToName = assignedToName;
         this.chatHistory = chatHistory != null ? chatHistory : new ArrayList<>();
         this.voiceNote = voiceNote;
         this.hasVoiceNote = hasVoiceNote;
@@ -99,6 +120,10 @@ public class Whistleblower {
         this.relationship = relationship;
         this.encounter = encounter;
         this.authoritiesAware = authoritiesAware;
+        this.managementSummary = managementSummary;
+        this.previousInvestigators = previousInvestigators != null ? previousInvestigators : new ArrayList<>();
+        this.reopenReasons = reopenReasons != null ? reopenReasons : new ArrayList<>();
+        this.isReopened = isReopened;
     }
     
     // Getters
@@ -111,6 +136,7 @@ public class Whistleblower {
     public int getCriticality() { return criticality; }
     public String getRewardWallet() { return rewardWallet; }
     public String getAssignedTo() { return assignedTo; }
+    public String getAssignedToName() { return assignedToName; }
     public List<ChatMessage> getChatHistory() { return chatHistory; }
     public String getVoiceNote() { return voiceNote; }
     public boolean getHasVoiceNote() { return hasVoiceNote; }
@@ -120,6 +146,10 @@ public class Whistleblower {
     public String getRelationship() { return relationship; }
     public String getEncounter() { return encounter; }
     public boolean getAuthoritiesAware() { return authoritiesAware; }
+    public String getManagementSummary() { return managementSummary; }
+    public List<String> getPreviousInvestigators() { return previousInvestigators; }
+    public List<String> getReopenReasons() { return reopenReasons; }
+    public boolean getIsReopened() { return isReopened; }
     
     @Override
     public boolean equals(final Object obj) {
@@ -135,6 +165,7 @@ public class Whistleblower {
                criticality == other.criticality &&
                Objects.equals(rewardWallet, other.rewardWallet) &&
                Objects.equals(assignedTo, other.assignedTo) &&
+               Objects.equals(assignedToName, other.assignedToName) &&
                Objects.equals(chatHistory, other.chatHistory) &&
                Objects.equals(voiceNote, other.voiceNote) &&
                hasVoiceNote == other.hasVoiceNote &&
@@ -143,20 +174,25 @@ public class Whistleblower {
                Objects.equals(monetaryValue, other.monetaryValue) &&
                Objects.equals(relationship, other.relationship) &&
                Objects.equals(encounter, other.encounter) &&
-               authoritiesAware == other.authoritiesAware;
+               authoritiesAware == other.authoritiesAware &&
+               Objects.equals(managementSummary, other.managementSummary) &&
+               Objects.equals(previousInvestigators, other.previousInvestigators) &&
+               Objects.equals(reopenReasons, other.reopenReasons) &&
+               isReopened == other.isReopened;
     }
     
     @Override
     public int hashCode() {
         return Objects.hash(id, title, description, submitter, date, status, 
-                          criticality, rewardWallet, assignedTo, chatHistory,
+                          criticality, rewardWallet, assignedTo, assignedToName, chatHistory,
                           voiceNote, hasVoiceNote, department, location,
-                          monetaryValue, relationship, encounter, authoritiesAware);
+                          monetaryValue, relationship, encounter, authoritiesAware,
+                          managementSummary, previousInvestigators, reopenReasons, isReopened);
     }
     
     @Override
     public String toString() {
-        return String.format("Whistleblower [id=%s, title=%s, submitter=%s, date=%s, status=%s, criticality=%d, hasVoiceNote=%b]", 
-                           id, title, submitter, date, status, criticality, hasVoiceNote);
+        return String.format("Whistleblower [id=%s, title=%s, submitter=%s, date=%s, status=%s, criticality=%d, hasVoiceNote=%b, isReopened=%b]", 
+                           id, title, submitter, date, status, criticality, hasVoiceNote, isReopened);
     }
 }

@@ -66,18 +66,35 @@ export const getReportById = async (id) => {
 };
 
 /**
- * Assign a report to self
+ * Investigate a report 
  * @param {string} id - Report ID
  * @returns {Promise<Object>} - Updated report
  */
-export const assignReportToSelf = async (id) => {
+export const investigateReport = async (id) => {
   try {
-    const response = await axios.post(`${API_URL}/reports/${id}/assign`, {}, {
+    const response = await axios.post(`${API_URL}/reports/${id}/investigate`, {}, {
       headers: getAuthHeader()
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'Error assigning report' };
+    throw error.response?.data || { message: 'Error investigating report' };
+  }
+};
+
+/**
+ * Add management summary to a report
+ * @param {string} id - Report ID
+ * @param {string} summary - Management summary
+ * @returns {Promise<Object>} - Updated report
+ */
+export const addManagementSummary = async (id, summary) => {
+  try {
+    const response = await axios.post(`${API_URL}/reports/${id}/management-summary`, { summary }, {
+      headers: getAuthHeader()
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Error adding management summary' };
   }
 };
 
@@ -94,6 +111,23 @@ export const completeInvestigation = async (id) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Error completing investigation' };
+  }
+};
+
+/**
+ * Reopen an investigation
+ * @param {string} id - Report ID
+ * @param {string} reason - Reason for reopening
+ * @returns {Promise<Object>} - Updated report
+ */
+export const reopenInvestigation = async (id, reason) => {
+  try {
+    const response = await axios.post(`${API_URL}/reports/${id}/reopen`, { reason }, {
+      headers: getAuthHeader()
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Error reopening investigation' };
   }
 };
 

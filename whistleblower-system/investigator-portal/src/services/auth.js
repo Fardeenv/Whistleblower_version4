@@ -7,40 +7,35 @@ const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api/inve
  * @returns {Object} - Header with Authorization token
  */
 export const getAuthHeader = () => {
-  const token = localStorage.getItem('investigator_token');
+  const token = localStorage.getItem('user_token');
   return { Authorization: `Bearer ${token}` };
 };
 
 /**
- * Login an investigator
+ * Login a user
  * @param {Object} credentials - Username and password
  * @returns {Promise<Object>} - User data and token
  */
 export const login = async (credentials) => {
   try {
-    console.log('Attempting login with credentials:', { username: credentials.username, passwordLength: credentials.password?.length || 0 });
-    console.log('API URL:', `${API_URL}/login`);
-    
     const response = await axios.post(`${API_URL}/login`, credentials);
-    console.log('Login response:', response.data);
     
     // Store token in localStorage
-    localStorage.setItem('investigator_token', response.data.token);
-    localStorage.setItem('investigator_user', JSON.stringify(response.data.user));
+    localStorage.setItem('user_token', response.data.token);
+    localStorage.setItem('user_data', JSON.stringify(response.data.user));
     
     return response.data;
   } catch (error) {
-    console.error('Login error details:', error.response || error);
-    throw error.response?.data || { message: 'Login failed. Please check your credentials and try again.' };
+    throw error.response?.data || { message: 'Login failed' };
   }
 };
 
 /**
- * Logout the investigator
+ * Logout the user
  */
 export const logout = () => {
-  localStorage.removeItem('investigator_token');
-  localStorage.removeItem('investigator_user');
+  localStorage.removeItem('user_token');
+  localStorage.removeItem('user_data');
 };
 
 /**
@@ -48,7 +43,7 @@ export const logout = () => {
  * @returns {boolean} - True if authenticated
  */
 export const isAuthenticated = () => {
-  return !!localStorage.getItem('investigator_token');
+  return !!localStorage.getItem('user_token');
 };
 
 /**
@@ -56,6 +51,16 @@ export const isAuthenticated = () => {
  * @returns {Object|null} - User data or null if not logged in
  */
 export const getCurrentUser = () => {
-  const userJson = localStorage.getItem('investigator_user');
+  const userJson = localStorage.getItem('user_data');
   return userJson ? JSON.parse(userJson) : null;
+};
+
+/**
+ * Check if user has a specific role
+ * @param {string} role - Role to check
+ * @returns {boolean} - True if user has the role
+ */
+export const hasRole = (role) => {
+  const user = getCurrentUser();
+  return user && user.role === role;
 };

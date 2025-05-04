@@ -1,47 +1,32 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { isAuthenticated } from './services/auth';
+import { isAuthenticated, hasRole } from './services/auth';
 
-import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
+
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ReportsPage from './pages/ReportsPage';
 import MyCasesPage from './pages/MyCasesPage';
 import ReportDetailPage from './pages/ReportDetailPage';
 
+// Layout component to wrap authenticated pages
+const AuthenticatedLayout = ({ children }) => (
+  <>
+    <Header />
+    <main className="main-content">{children}</main>
+    <Footer />
+  </>
+);
+
 function App() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-  
-  // Authenticated Layout component to avoid repetition
-  const AuthenticatedLayout = ({ children }) => {
-    if (!isAuthenticated()) {
-      return <Navigate to="/login" />;
-    }
-    
-    return (
-      <>
-        <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-        <button className="mobile-toggle" onClick={toggleSidebar}>
-          {sidebarOpen ? '✕' : '☰'}
-        </button>
-        <div className={`main-content ${sidebarOpen ? '' : 'shifted'}`}>
-          {children}
-        </div>
-      </>
-    );
-  };
-  
   return (
     <Router>
       <div className="app">
-        <ToastContainer position="top-right" autoClose={3000} />
-        
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={
@@ -52,31 +37,41 @@ function App() {
             isAuthenticated() ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
           } />
           
-          {/* Protected routes */}
+          {/* Protected routes with layout */}
           <Route path="/dashboard" element={
-            <AuthenticatedLayout>
-              <DashboardPage />
-            </AuthenticatedLayout>
+            <ProtectedRoute>
+              <AuthenticatedLayout>
+                <DashboardPage />
+              </AuthenticatedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/reports" element={
-            <AuthenticatedLayout>
-              <ReportsPage />
-            </AuthenticatedLayout>
+            <ProtectedRoute>
+              <AuthenticatedLayout>
+                <ReportsPage />
+              </AuthenticatedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/reports/:id" element={
-            <AuthenticatedLayout>
-              <ReportDetailPage />
-            </AuthenticatedLayout>
+            <ProtectedRoute>
+              <AuthenticatedLayout>
+                <ReportDetailPage />
+              </AuthenticatedLayout>
+            </ProtectedRoute>
           } />
           
           <Route path="/my-cases" element={
-            <AuthenticatedLayout>
-              <MyCasesPage />
-            </AuthenticatedLayout>
+            <ProtectedRoute>
+              <AuthenticatedLayout>
+                <MyCasesPage />
+              </AuthenticatedLayout>
+            </ProtectedRoute>
           } />
         </Routes>
+        
+        <ToastContainer position="top-right" autoClose={5000} />
       </div>
     </Router>
   );

@@ -1,132 +1,128 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaMicrophone, FaStop, FaTrash, FaPlay, FaPause } from 'react-icons/fa';
+import { FaMicrophone, FaStop, FaPlay, FaTrash } from 'react-icons/fa';
 
 const VoiceRecorder = ({ onRecordingComplete }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [recording, setRecording] = useState(null);
+  const [audioBlob, setAudioBlob] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-
+  
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const timerRef = useRef(null);
   const audioRef = useRef(new Audio());
-
+  
+  useEffect(() => {
+    // Clean up audio and timer on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+  
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  };
+  
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
       mediaRecorderRef.current = new MediaRecorder(stream);
       audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
         }
       };
-
+      
       mediaRecorderRef.current.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-
-        setRecording({
-          blob: audioBlob,
-          url: audioUrl,
-          duration: recordingTime
-        });
-
-        // Notify parent component
-        if (onRecordingComplete) {
-          onRecordingComplete(audioBlob);
-        }
-
-        // Stop all tracks from the stream
+        setAudioBlob(audioBlob);
+        onRecordingComplete(audioBlob);
+        
+        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
-
+      
+      // Start recording
       mediaRecorderRef.current.start();
       setIsRecording(true);
-
-      // Start the timer
+      setRecordingTime(0);
+      
+      // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
-
     } catch (error) {
-      console.error('Error accessing microphone:', error);
-      alert('Error accessing your microphone. Please make sure your browser has permission to use it.');
+      console.error('Error starting recording:', error);
+      alert('Could not access microphone. Please ensure permissions are granted.');
     }
   };
-
+  
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      clearInterval(timerRef.current);
-    }
-  };
-
-  const playRecording = () => {
-    if (recording) {
-      audioRef.current.src = recording.url;
-      audioRef.current.play();
-      setIsPlaying(true);
-
-      audioRef.current.onended = () => {
-        setIsPlaying(false);
-      };
-    }
-  };
-
-  const pauseRecording = () => {
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    }
-  };
-
-  const deleteRecording = () => {
-    setRecording(null);
-    setRecordingTime(0);
-
-    if (onRecordingComplete) {
-      onRecordingComplete(null);
-    }
-  };
-
-  const formatTime = (timeInSeconds) => {
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = timeInSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
+      
+      // Stop timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-
-      // Stop any ongoing recording when component unmounts
-      if (mediaRecorderRef.current && isRecording) {
-        mediaRecorderRef.current.stop();
-      }
-    };
-  }, [isRecording]);
-
+    }
+  };
+  
+  const playRecording = () => {
+    if (audioBlob) {
+      const url = URL.createObjectURL(audioBlob);
+      audioRef.current.src = url;
+      audioRef.current.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(url);
+      };
+      
+      setIsPlaying(true);
+      audioRef.current.play();
+    }
+  };
+  
+  const stopPlayback = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
+  
+  const deleteRecording = () => {
+    setAudioBlob(null);
+    onRecordingComplete(null);
+    
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
+    
+    setIsPlaying(false);
+  };
+  
   return (
     <div className="voice-recorder">
-      {!recording ? (
+      {!audioBlob ? (
         <div className="recorder-controls">
-          <button
-            type="button"
+          <button 
             className={`record-button ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
-            title={isRecording ? "Stop Recording" : "Start Recording"}
           >
             {isRecording ? <FaStop /> : <FaMicrophone />}
           </button>
-
+          
           {isRecording && (
             <div className="recording-time">
               <span className="recording-indicator"></span>
@@ -137,22 +133,21 @@ const VoiceRecorder = ({ onRecordingComplete }) => {
       ) : (
         <div className="recording-playback">
           <div className="recording-info">
-            <span className="recording-duration">{formatTime(recording.duration)}</span>
+            <span className="recording-duration">
+              Voice note recorded ({formatTime(recordingTime)})
+            </span>
+            
             <div className="playback-controls">
-              <button
-                type="button"
+              <button 
                 className="playback-button"
-                onClick={isPlaying ? pauseRecording : playRecording}
-                title={isPlaying ? "Pause" : "Play"}
+                onClick={isPlaying ? stopPlayback : playRecording}
               >
-                {isPlaying ? <FaPause /> : <FaPlay />}
+                {isPlaying ? <FaStop /> : <FaPlay />}
               </button>
-
-              <button
-                type="button"
+              
+              <button 
                 className="delete-button"
                 onClick={deleteRecording}
-                title="Delete Recording"
               >
                 <FaTrash />
               </button>

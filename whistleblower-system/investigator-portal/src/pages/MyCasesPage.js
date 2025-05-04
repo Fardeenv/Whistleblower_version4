@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { getMyReports } from '../api/investigator';
 import ReportList from '../components/ReportList';
+import { hasRole } from '../services/auth';
 import { toast } from 'react-toastify';
+import { Navigate } from 'react-router-dom';
 
 const MyCasesPage = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
-  
+  const isInvestigator = hasRole('investigator');
+
   useEffect(() => {
     const fetchMyReports = async () => {
       try {
@@ -22,65 +25,58 @@ const MyCasesPage = () => {
         setLoading(false);
       }
     };
-    
+
     fetchMyReports();
   }, []);
-  
+
+  // Handle redirect after hooks are called
+  if (!isInvestigator) {
+    return <Navigate to="/dashboard" />;
+  }
+
   const filteredReports = filter === 'all' 
     ? reports 
     : reports.filter(report => report.status === filter);
-  
+
+  if (loading && reports.length === 0) {
+    return <div className="loading container">Loading your cases...</div>;
+  }
+
+  if (error && reports.length === 0) {
+    return <div className="error-message container">{error}</div>;
+  }
+
   return (
-    <>
-      <div className="page-header">
-        <h1>My Cases</h1>
-        <div className="page-description">
-          <p>View and manage cases assigned to you</p>
-        </div>
-      </div>
-      
+    <div className="my-cases-page container">
+      <h1>My Cases</h1>
+
       <div className="filter-tabs">
         <button 
           className={`tab-button ${filter === 'all' ? 'active' : ''}`}
           onClick={() => setFilter('all')}
         >
-          All Cases
+          All
         </button>
         <button 
           className={`tab-button ${filter === 'under_investigation' ? 'active' : ''}`}
           onClick={() => setFilter('under_investigation')}
         >
-          🔍 Active Cases
+          Active
         </button>
         <button 
           className={`tab-button ${filter === 'completed' ? 'active' : ''}`}
           onClick={() => setFilter('completed')}
         >
-          ✅ Completed Cases
+          Completed
         </button>
       </div>
-      
-      {loading && reports.length === 0 ? (
-        <div className="loading">
-          <div className="loading-spinner"></div>
-          <p>Loading your cases...</p>
-        </div>
-      ) : error && reports.length === 0 ? (
-        <div className="error-message">{error}</div>
+
+      {loading ? (
+        <div className="loading">Refreshing cases...</div>
       ) : (
-        <div className="card">
-          {filteredReports.length > 0 ? (
-            <ReportList reports={filteredReports} />
-          ) : (
-            <div className="no-reports">
-              {filter === 'all' 
-                ? "You don't have any assigned cases yet." 
-                : `You don't have any ${filter === 'under_investigation' ? 'active' : 'completed'} cases.`}
-            </div>
-          )}
-        </div>
+        <ReportList reports={filteredReports} />
       )}
-    </>
+    </div>
   );
 };
 

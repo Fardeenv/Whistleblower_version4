@@ -48,24 +48,6 @@ export const getReportById = async (id) => {
 };
 
 /**
- * Get the voice note audio file
- * @param {string} voiceNotePath - Path to voice note
- * @returns {Promise<Blob>} - The voice note audio blob
- */
-export const getVoiceNote = async (voiceNotePath) => {
-  try {
-    // Extract the filename from the path
-    const filename = voiceNotePath.split('/').pop();
-    const response = await axios.get(`${API_URL}/voice-notes/${filename}`, {
-      responseType: 'blob'
-    });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || { message: 'Error fetching voice note' };
-  }
-};
-
-/**
  * Get chat history for a report
  * @param {string} id - Report ID
  * @returns {Promise<Array>} - Array of chat messages

@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import { hasRole } from '../services/auth';
 
-const ReportList = ({ reports, showActions = false, onAssign }) => {
+const ReportList = ({ reports, showActions = false, onInvestigate }) => {
+  const isInvestigator = hasRole('investigator');
+  
   const formatDate = (dateString) => {
     try {
       return format(new Date(dateString), 'MMM d, yyyy');
@@ -61,19 +64,6 @@ const ReportList = ({ reports, showActions = false, onAssign }) => {
     }
   };
   
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'pending':
-        return '⏳ ';
-      case 'under_investigation':
-        return '🔍 ';
-      case 'completed':
-        return '✅ ';
-      default:
-        return '';
-    }
-  };
-  
   if (!reports || reports.length === 0) {
     return <div className="no-reports">No reports found</div>;
   }
@@ -85,9 +75,10 @@ const ReportList = ({ reports, showActions = false, onAssign }) => {
           <tr>
             <th>ID</th>
             <th>Title</th>
-            <th>Date</th>
+            <th>Submitted</th>
             <th>Criticality</th>
             <th>Status</th>
+            {!isInvestigator && <th>Investigator</th>}
             <th>Actions</th>
           </tr>
         </thead>
@@ -100,20 +91,28 @@ const ReportList = ({ reports, showActions = false, onAssign }) => {
               <td>{renderCriticalityBadge(report.criticality)}</td>
               <td>
                 <span className={`status-badge status-${report.status}`}>
-                  {getStatusIcon(report.status)}{getStatusLabel(report.status)}
+                  {getStatusLabel(report.status)}
                 </span>
+                {report.isReopened && (
+                  <span className="reopened-badge">Reopened</span>
+                )}
               </td>
+              {!isInvestigator && (
+                <td>
+                  {report.assignedToName || 'None'}
+                </td>
+              )}
               <td className="actions">
                 <Link to={`/reports/${report.id}`} className="view-button">
-                  View Details
+                  View
                 </Link>
                 
-                {showActions && report.status === 'pending' && (
+                {isInvestigator && showActions && report.status === 'pending' && (
                   <button 
-                    onClick={() => onAssign(report.id)}
+                    onClick={() => onInvestigate(report.id)}
                     className="assign-button"
                   >
-                    Assign to Me
+                    Investigate
                   </button>
                 )}
               </td>

@@ -30,7 +30,8 @@ public class WhistleblowerContract implements ContractInterface {
         REPORT_ALREADY_EXISTS,
         INVALID_ACCESS,
         INVALID_STATUS_CHANGE,
-        INVESTIGATOR_NOT_ASSIGNED
+        INVESTIGATOR_NOT_ASSIGNED,
+        INVESTIGATOR_INELIGIBLE
     }
     
     @Transaction()
@@ -38,6 +39,9 @@ public class WhistleblowerContract implements ContractInterface {
         ChaincodeStub stub = ctx.getStub();
         
         List<ChatMessage> chatHistory = new ArrayList<>();
+        List<String> previousInvestigators = new ArrayList<>();
+        List<String> reopenReasons = new ArrayList<>();
+        
         Whistleblower report = new Whistleblower(
             "1", 
             "Sample Report", 
@@ -48,6 +52,7 @@ public class WhistleblowerContract implements ContractInterface {
             3, // medium criticality
             "", // no reward wallet
             "", // not assigned
+            "", // no assigned name
             chatHistory,
             "", // no voice note
             false, // hasVoiceNote
@@ -56,7 +61,11 @@ public class WhistleblowerContract implements ContractInterface {
             "", // monetary value
             "", // relationship
             "", // encounter
-            false // authorities aware
+            false, // authorities aware
+            "", // management summary
+            previousInvestigators,
+            reopenReasons,
+            false // not reopened
         );
         
         String reportState = genson.serialize(report);
@@ -93,6 +102,9 @@ public class WhistleblowerContract implements ContractInterface {
         }
         
         List<ChatMessage> chatHistory = new ArrayList<>();
+        List<String> previousInvestigators = new ArrayList<>();
+        List<String> reopenReasons = new ArrayList<>();
+        
         Whistleblower report = new Whistleblower(
             id, 
             title, 
@@ -103,6 +115,7 @@ public class WhistleblowerContract implements ContractInterface {
             criticality,
             rewardWallet,
             "", // not assigned yet
+            "", // no assigned name
             chatHistory,
             voiceNote,
             hasVoiceNote,
@@ -111,7 +124,11 @@ public class WhistleblowerContract implements ContractInterface {
             monetaryValue,
             relationship,
             encounter,
-            authoritiesAware
+            authoritiesAware,
+            "", // no management summary yet
+            previousInvestigators,
+            reopenReasons,
+            false // not reopened
         );
         
         reportState = genson.serialize(report);
@@ -139,7 +156,7 @@ public class WhistleblowerContract implements ContractInterface {
     }
     
     @Transaction()
-    public Whistleblower assignReport(final Context ctx, final String id, final String investigatorId) {
+    public Whistleblower assignReport(final Context ctx, final String id, final String investigatorId, final String investigatorName) {
         ChaincodeStub stub = ctx.getStub();
         String reportState = stub.getStringState(id);
         
@@ -150,6 +167,13 @@ public class WhistleblowerContract implements ContractInterface {
         }
         
         Whistleblower oldReport = genson.deserialize(reportState, Whistleblower.class);
+        
+        // Check if investigator is eligible (not in previousInvestigators list)
+        if (oldReport.getIsReopened() && oldReport.getPreviousInvestigators().contains(investigatorId)) {
+            String errorMessage = String.format("Investigator %s is not eligible to investigate this reopened report", investigatorId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVESTIGATOR_INELIGIBLE.toString());
+        }
         
         // Create a new report with updated assignment and status
         Whistleblower newReport = new Whistleblower(
@@ -162,6 +186,7 @@ public class WhistleblowerContract implements ContractInterface {
             oldReport.getCriticality(),
             oldReport.getRewardWallet(),
             investigatorId, // Assign the investigator
+            investigatorName, // Assign investigator name
             oldReport.getChatHistory(),
             oldReport.getVoiceNote(),
             oldReport.getHasVoiceNote(),
@@ -170,7 +195,11 @@ public class WhistleblowerContract implements ContractInterface {
             oldReport.getMonetaryValue(),
             oldReport.getRelationship(),
             oldReport.getEncounter(),
-            oldReport.getAuthoritiesAware()
+            oldReport.getAuthoritiesAware(),
+            oldReport.getManagementSummary(),
+            oldReport.getPreviousInvestigators(),
+            oldReport.getReopenReasons(),
+            oldReport.getIsReopened()
         );
         
         String newReportState = genson.serialize(newReport);
@@ -204,6 +233,7 @@ public class WhistleblowerContract implements ContractInterface {
             oldReport.getCriticality(),
             oldReport.getRewardWallet(),
             oldReport.getAssignedTo(),
+            oldReport.getAssignedToName(),
             oldReport.getChatHistory(),
             oldReport.getVoiceNote(),
             oldReport.getHasVoiceNote(),
@@ -212,7 +242,11 @@ public class WhistleblowerContract implements ContractInterface {
             oldReport.getMonetaryValue(),
             oldReport.getRelationship(),
             oldReport.getEncounter(),
-            oldReport.getAuthoritiesAware()
+            oldReport.getAuthoritiesAware(),
+            oldReport.getManagementSummary(),
+            oldReport.getPreviousInvestigators(),
+            oldReport.getReopenReasons(),
+            oldReport.getIsReopened()
         );
         
         String newReportState = genson.serialize(newReport);
@@ -220,6 +254,201 @@ public class WhistleblowerContract implements ContractInterface {
         System.out.println("Report status updated: " + newReport.toString());
         
         return newReport;
+    }
+    
+    @Transaction()
+    public Whistleblower addManagementSummary(
+            final Context ctx, 
+            final String reportId, 
+            final String investigatorId,
+            final String summary) {
+        
+        ChaincodeStub stub = ctx.getStub();
+        String reportState = stub.getStringState(reportId);
+        
+        if (reportState.isEmpty()) {
+            String errorMessage = String.format("Report with ID %s does not exist", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_NOT_FOUND.toString());
+        }
+        
+        Whistleblower report = genson.deserialize(reportState, Whistleblower.class);
+        
+        // Verify that the investigator is assigned to this report
+        if (!report.getAssignedTo().equals(investigatorId)) {
+            String errorMessage = String.format("Investigator %s is not assigned to report %s", investigatorId, reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVESTIGATOR_NOT_ASSIGNED.toString());
+        }
+        
+        // Create an updated report with the management summary
+        Whistleblower updatedReport = new Whistleblower(
+            report.getId(),
+            report.getTitle(),
+            report.getDescription(),
+            report.getSubmitter(),
+            report.getDate(),
+            report.getStatus(),
+            report.getCriticality(),
+            report.getRewardWallet(),
+            report.getAssignedTo(),
+            report.getAssignedToName(),
+            report.getChatHistory(),
+            report.getVoiceNote(),
+            report.getHasVoiceNote(),
+            report.getDepartment(),
+            report.getLocation(),
+            report.getMonetaryValue(),
+            report.getRelationship(),
+            report.getEncounter(),
+            report.getAuthoritiesAware(),
+            summary,
+            report.getPreviousInvestigators(),
+            report.getReopenReasons(),
+            report.getIsReopened()
+        );
+        
+        String updatedReportState = genson.serialize(updatedReport);
+        stub.putStringState(reportId, updatedReportState);
+        System.out.println("Management summary added to report: " + updatedReport.getId());
+        
+        return updatedReport;
+    }
+    
+    @Transaction()
+    public Whistleblower reopenInvestigation(
+            final Context ctx, 
+            final String reportId, 
+            final String reason) {
+        
+        ChaincodeStub stub = ctx.getStub();
+        String reportState = stub.getStringState(reportId);
+        
+        if (reportState.isEmpty()) {
+            String errorMessage = String.format("Report with ID %s does not exist", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_NOT_FOUND.toString());
+        }
+        
+        Whistleblower report = genson.deserialize(reportState, Whistleblower.class);
+        
+        // Check that the report is in a completed state
+        if (!report.getStatus().equals("completed")) {
+            String errorMessage = String.format("Report %s is not in a completed state and cannot be reopened", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVALID_STATUS_CHANGE.toString());
+        }
+        
+        // Update the previous investigators list
+        List<String> previousInvestigators = new ArrayList<>(report.getPreviousInvestigators());
+        if (!previousInvestigators.contains(report.getAssignedTo())) {
+            previousInvestigators.add(report.getAssignedTo());
+        }
+        
+        // Update the reopen reasons list
+        List<String> reopenReasons = new ArrayList<>(report.getReopenReasons());
+        reopenReasons.add(reason);
+        
+        // Create an updated report with reopened status
+        Whistleblower updatedReport = new Whistleblower(
+            report.getId(),
+            report.getTitle(),
+            report.getDescription(),
+            report.getSubmitter(),
+            report.getDate(),
+            "pending", // Change status back to pending
+            report.getCriticality(),
+            report.getRewardWallet(),
+            "", // Clear the assigned investigator
+            "", // Clear the assigned investigator name
+            report.getChatHistory(),
+            report.getVoiceNote(),
+            report.getHasVoiceNote(),
+            report.getDepartment(),
+            report.getLocation(),
+            report.getMonetaryValue(),
+            report.getRelationship(),
+            report.getEncounter(),
+            report.getAuthoritiesAware(),
+            report.getManagementSummary(),
+            previousInvestigators,
+            reopenReasons,
+            true // Mark as reopened
+        );
+        
+        String updatedReportState = genson.serialize(updatedReport);
+        stub.putStringState(reportId, updatedReportState);
+        System.out.println("Investigation reopened for report: " + updatedReport.getId());
+        
+        return updatedReport;
+    }
+    
+    @Transaction()
+    public Whistleblower completeInvestigation(final Context ctx, final String reportId, final String investigatorId) {
+        ChaincodeStub stub = ctx.getStub();
+        String reportState = stub.getStringState(reportId);
+        
+        if (reportState.isEmpty()) {
+            String errorMessage = String.format("Report with ID %s does not exist", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_NOT_FOUND.toString());
+        }
+        
+        Whistleblower report = genson.deserialize(reportState, Whistleblower.class);
+        
+        // Verify that the investigator is assigned to this report
+        if (!report.getAssignedTo().equals(investigatorId)) {
+            String errorMessage = String.format("Investigator %s is not assigned to report %s", investigatorId, reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVESTIGATOR_NOT_ASSIGNED.toString());
+        }
+        
+        // Verify that the report is under investigation
+        if (!report.getStatus().equals("under_investigation")) {
+            String errorMessage = String.format("Report %s is not under investigation", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVALID_STATUS_CHANGE.toString());
+        }
+        
+        // Check if management summary exists
+        if (report.getManagementSummary() == null || report.getManagementSummary().isEmpty()) {
+            String errorMessage = String.format("Management summary is required to complete investigation for report %s", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, "MANAGEMENT_SUMMARY_REQUIRED");
+        }
+        
+        // Create an updated report with completed status
+        Whistleblower updatedReport = new Whistleblower(
+            report.getId(),
+            report.getTitle(),
+            report.getDescription(),
+            report.getSubmitter(),
+            report.getDate(),
+            "completed",
+            report.getCriticality(),
+            report.getRewardWallet(),
+            report.getAssignedTo(),
+            report.getAssignedToName(),
+            report.getChatHistory(),
+            report.getVoiceNote(),
+            report.getHasVoiceNote(),
+            report.getDepartment(),
+            report.getLocation(),
+            report.getMonetaryValue(),
+            report.getRelationship(),
+            report.getEncounter(),
+            report.getAuthoritiesAware(),
+            report.getManagementSummary(),
+            report.getPreviousInvestigators(),
+            report.getReopenReasons(),
+            report.getIsReopened()
+        );
+        
+        String updatedReportState = genson.serialize(updatedReport);
+        stub.putStringState(reportId, updatedReportState);
+        System.out.println("Investigation completed for report: " + updatedReport.getId());
+        
+        return updatedReport;
     }
     
     @Transaction()
@@ -257,6 +486,7 @@ public class WhistleblowerContract implements ContractInterface {
             report.getCriticality(),
             report.getRewardWallet(),
             report.getAssignedTo(),
+            report.getAssignedToName(),
             chatHistory,
             report.getVoiceNote(),
             report.getHasVoiceNote(),
@@ -265,7 +495,11 @@ public class WhistleblowerContract implements ContractInterface {
             report.getMonetaryValue(),
             report.getRelationship(),
             report.getEncounter(),
-            report.getAuthoritiesAware()
+            report.getAuthoritiesAware(),
+            report.getManagementSummary(),
+            report.getPreviousInvestigators(),
+            report.getReopenReasons(),
+            report.getIsReopened()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
@@ -316,6 +550,7 @@ public class WhistleblowerContract implements ContractInterface {
             report.getCriticality(),
             report.getRewardWallet(),
             report.getAssignedTo(),
+            report.getAssignedToName(),
             updatedChatHistory,
             report.getVoiceNote(),
             report.getHasVoiceNote(),
@@ -324,68 +559,16 @@ public class WhistleblowerContract implements ContractInterface {
             report.getMonetaryValue(),
             report.getRelationship(),
             report.getEncounter(),
-            report.getAuthoritiesAware()
+            report.getAuthoritiesAware(),
+            report.getManagementSummary(),
+            report.getPreviousInvestigators(),
+            report.getReopenReasons(),
+            report.getIsReopened()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
         stub.putStringState(reportId, updatedReportState);
         System.out.println("Chat messages marked as read in report: " + updatedReport.getId());
-        
-        return updatedReport;
-    }
-    
-    @Transaction()
-    public Whistleblower completeInvestigation(final Context ctx, final String reportId, final String investigatorId) {
-        ChaincodeStub stub = ctx.getStub();
-        String reportState = stub.getStringState(reportId);
-        
-        if (reportState.isEmpty()) {
-            String errorMessage = String.format("Report with ID %s does not exist", reportId);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_NOT_FOUND.toString());
-        }
-        
-        Whistleblower report = genson.deserialize(reportState, Whistleblower.class);
-        
-        // Verify that the investigator is assigned to this report
-        if (!report.getAssignedTo().equals(investigatorId)) {
-            String errorMessage = String.format("Investigator %s is not assigned to report %s", investigatorId, reportId);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVESTIGATOR_NOT_ASSIGNED.toString());
-        }
-        
-        // Verify that the report is under investigation
-        if (!report.getStatus().equals("under_investigation")) {
-            String errorMessage = String.format("Report %s is not under investigation", reportId);
-            System.out.println(errorMessage);
-            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVALID_STATUS_CHANGE.toString());
-        }
-        
-        // Create an updated report with completed status
-        Whistleblower updatedReport = new Whistleblower(
-            report.getId(),
-            report.getTitle(),
-            report.getDescription(),
-            report.getSubmitter(),
-            report.getDate(),
-            "completed",
-            report.getCriticality(),
-            report.getRewardWallet(),
-            report.getAssignedTo(),
-            report.getChatHistory(),
-            report.getVoiceNote(),
-            report.getHasVoiceNote(),
-            report.getDepartment(),
-            report.getLocation(),
-            report.getMonetaryValue(),
-            report.getRelationship(),
-            report.getEncounter(),
-            report.getAuthoritiesAware()
-        );
-        
-        String updatedReportState = genson.serialize(updatedReport);
-        stub.putStringState(reportId, updatedReportState);
-        System.out.println("Investigation completed for report: " + updatedReport.getId());
         
         return updatedReport;
     }
