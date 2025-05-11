@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaMicrophone, FaStop, FaPlay, FaTrash } from 'react-icons/fa';
 
-const VoiceRecorder = ({ onRecordingComplete }) => {
+const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -13,8 +13,9 @@ const VoiceRecorder = ({ onRecordingComplete }) => {
   const audioRef = useRef(new Audio());
   
   useEffect(() => {
-    // Clean up audio and timer on unmount
+    console.log('VoiceRecorder mounted, onVoiceNote:', typeof onVoiceNote);
     return () => {
+      console.log('VoiceRecorder unmounting');
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -43,20 +44,21 @@ const VoiceRecorder = ({ onRecordingComplete }) => {
       };
       
       mediaRecorderRef.current.onstop = () => {
+        console.log('Recording stopped, calling onVoiceNote');
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         setAudioBlob(audioBlob);
-        onRecordingComplete(audioBlob);
-        
-        // Stop all tracks
+        if (typeof onVoiceNote === 'function') {
+          onVoiceNote(audioBlob);
+        } else {
+          console.warn('onVoiceNote is not a function:', onVoiceNote);
+        }
         stream.getTracks().forEach(track => track.stop());
       };
       
-      // Start recording
       mediaRecorderRef.current.start();
       setIsRecording(true);
       setRecordingTime(0);
       
-      // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
@@ -71,7 +73,6 @@ const VoiceRecorder = ({ onRecordingComplete }) => {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
-      // Stop timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
@@ -102,7 +103,11 @@ const VoiceRecorder = ({ onRecordingComplete }) => {
   
   const deleteRecording = () => {
     setAudioBlob(null);
-    onRecordingComplete(null);
+    if (typeof onVoiceNote === 'function') {
+      onVoiceNote(null);
+    } else {
+      console.warn('onVoiceNote is not a function:', onVoiceNote);
+    }
     
     if (audioRef.current) {
       audioRef.current.pause();
@@ -117,6 +122,7 @@ const VoiceRecorder = ({ onRecordingComplete }) => {
       {!audioBlob ? (
         <div className="recorder-controls">
           <button 
+            type="button"
             className={`record-button ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
           >
@@ -139,6 +145,7 @@ const VoiceRecorder = ({ onRecordingComplete }) => {
             
             <div className="playback-controls">
               <button 
+                type="button"
                 className="playback-button"
                 onClick={isPlaying ? stopPlayback : playRecording}
               >
@@ -146,6 +153,7 @@ const VoiceRecorder = ({ onRecordingComplete }) => {
               </button>
               
               <button 
+                type="button"
                 className="delete-button"
                 onClick={deleteRecording}
               >
