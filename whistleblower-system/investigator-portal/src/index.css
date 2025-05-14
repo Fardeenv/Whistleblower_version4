@@ -1161,4 +1161,91 @@ body {
     padding: 8px 16px;
     font-size: 0.85rem;
   }
+}/* Permanent Closure Form */
+.permanent-closure-form {
+  margin: 30px 0;
+  padding: 25px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  border-left: 4px solid #27ae60;
+}
+
+.permanent-closure-form h3 {
+  color: #27ae60;
+  margin-bottom: 15px;
+}
+
+/* Reward Form */
+.reward-form {
+  margin: 30px 0;
+  padding: 25px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  border-left: 4px solid #f39c12;
+}
+
+.reward-form h3 {
+  color: #f39c12;
+  margin-bottom: 15px;
+}
+
+.reward-form .balance {
+  font-weight: bold;
+  color: #27ae60;
+}
+
+/* Closure Summary */
+.closure-summary-section {
+  margin: 30px 0;
+  padding: 25px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+}
+
+.closure-summary-section h3 {
+  color: #3498db;
+  margin-bottom: 15px;
+}
+
+/* Reward processed */
+.reward-processed {
+  margin-top: 15px;
+  padding: 10px;
+  background-color: #f0f8ff;
+  border-radius: 4px;
+}
+
+/* Status badges */
+.status-investigation_complete {
+  background-color: #c5e1a5;
+  color: #33691e;
+}
+
+.closed-badge {
+  display: inline-block;
+  background-color: #d1f1da;
+  color: #27ae60;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 10px;
+}
+.reward-balance-card {
+  background-color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.reward-balance-card h3 {
+  color: #2c3e50;
+  margin: 0;
+}
+
+.reward-balance-card .balance {
+  color: #27ae60;
+  font-weight: bold;
 }

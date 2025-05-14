@@ -39,12 +39,22 @@ const ReportDetailPage = () => {
           if (update.reportId === id) {
             setReport(prev => ({ ...prev, status: update.status }));
             
-            let message = `Report status changed to: ${update.status.replace('_', ' ')}`;
-            if (update.status === 'completed' && update.rewardProcessed) {
-              message += '. Your reward has been processed!';
-            }
-            
+            let message = `Report status changed to: ${getStatusLabel(update.status)}`;
             toast.info(message);
+          }
+        });
+        
+        // Listen for reward processing
+        socket.on('reward_processed', (update) => {
+          if (update.reportId === id) {
+            setReport(prev => ({ 
+              ...prev, 
+              rewardProcessed: true,
+              rewardAmount: update.rewardAmount,
+              rewardNote: update.rewardNote
+            }));
+            
+            toast.success(`You received a reward of ${update.rewardAmount} bit!`);
           }
         });
       } catch (err) {
@@ -101,8 +111,10 @@ const ReportDetailPage = () => {
         return 'Pending Review';
       case 'under_investigation':
         return 'Under Investigation';
+      case 'investigation_complete':
+        return 'Investigation Complete';
       case 'completed':
-        return 'Investigation Completed';
+        return 'Permanently Closed';
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -134,6 +146,7 @@ const ReportDetailPage = () => {
         <div className="status-badge">
           Status: <span className={`status-${report.status}`}>{getStatusLabel(report.status)}</span>
           {report.isReopened && <span className="reopened-badge">Reopened</span>}
+          {report.permanentlyClosed && <span className="closed-badge">Permanently Closed</span>}
         </div>
         
         <div className="report-info">
@@ -220,13 +233,30 @@ const ReportDetailPage = () => {
           <div className="wallet-info">
             <strong>Reward Wallet:</strong> 
             <span className="wallet-address">{report.rewardWallet}</span>
+            
+            {report.rewardProcessed && (
+              <div className="reward-processed">
+                <h4>Reward Received!</h4>
+                <p><strong>Amount:</strong> {report.rewardAmount} bit</p>
+                <p><strong>Note from Management:</strong> {report.rewardNote}</p>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {report.closureSummary && (
+          <div className="closure-summary-section">
+            <h3>Closure Summary</h3>
+            <div className="summary-content">
+              <p>{report.closureSummary}</p>
+            </div>
           </div>
         )}
         
         <div className="chat-section">
           <ChatComponent 
             reportId={report.id} 
-            disabled={report.status === 'completed'} 
+            disabled={report.status === 'completed' || report.permanentlyClosed} 
           />
         </div>
       </div>

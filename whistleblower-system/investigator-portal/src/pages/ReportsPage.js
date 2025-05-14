@@ -73,10 +73,16 @@ const ReportsPage = () => {
           Under Investigation
         </button>
         <button 
+          className={`tab-button ${activeStatus === 'investigation_complete' ? 'active' : ''}`}
+          onClick={() => handleStatusChange('investigation_complete')}
+        >
+          Investigation Complete
+        </button>
+        <button 
           className={`tab-button ${activeStatus === 'completed' ? 'active' : ''}`}
           onClick={() => handleStatusChange('completed')}
         >
-          Completed
+          Permanently Closed
         </button>
       </div>
       

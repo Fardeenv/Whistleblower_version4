@@ -57,8 +57,10 @@ const ReportList = ({ reports, showActions = false, onInvestigate }) => {
         return 'Pending';
       case 'under_investigation':
         return 'Under Investigation';
+      case 'investigation_complete':
+        return 'Investigation Complete';
       case 'completed':
-        return 'Completed';
+        return 'Permanently Closed';
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -95,6 +97,9 @@ const ReportList = ({ reports, showActions = false, onInvestigate }) => {
                 </span>
                 {report.isReopened && (
                   <span className="reopened-badge">Reopened</span>
+                )}
+                {report.permanentlyClosed && (
+                  <span className="closed-badge">Closed</span>
                 )}
               </td>
               {!isInvestigator && (

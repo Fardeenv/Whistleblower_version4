@@ -4,8 +4,23 @@ import { getAuthHeader } from '../services/auth';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api/investigator';
 
 /**
+ * Get reward balance
+ * @returns {Promise<Object>} - Reward balance data
+ */
+export const getRewardBalance = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/reward-balance`, {
+      headers: getAuthHeader()
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Error fetching reward balance' };
+  }
+};
+
+/**
  * Get reports by status
- * @param {string} status - Report status (pending, under_investigation, completed)
+ * @param {string} status - Report status (pending, under_investigation, investigation_complete, completed)
  * @returns {Promise<Array>} - Array of reports
  */
 export const getReportsByStatus = async (status = 'pending') => {
@@ -111,6 +126,42 @@ export const completeInvestigation = async (id) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Error completing investigation' };
+  }
+};
+
+/**
+ * Permanently close a case
+ * @param {string} id - Report ID
+ * @param {string} closureSummary - Closure summary
+ * @returns {Promise<Object>} - Updated report
+ */
+export const permanentlyCloseCase = async (id, closureSummary) => {
+  try {
+    const response = await axios.post(`${API_URL}/reports/${id}/permanently-close`, { closureSummary }, {
+      headers: getAuthHeader()
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Error permanently closing case' };
+  }
+};
+
+/**
+ * Process reward for a whistleblower
+ * @param {string} id - Report ID
+ * @param {string} rewardNote - Note to accompany the reward
+ * @param {number} rewardAmount - Amount of reward
+ * @returns {Promise<Object>} - Updated report and balance
+ */
+export const processReward = async (id, rewardNote, rewardAmount) => {
+  try {
+    const response = await axios.post(`${API_URL}/reports/${id}/process-reward`, 
+      { rewardNote, rewardAmount }, 
+      { headers: getAuthHeader() }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Error processing reward' };
   }
 };
 

@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
+import { FaPause, FaPlay, FaStop, FaMicrophone, FaTrash } from 'react-icons/fa';
 import { useForm, useFieldArray } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { submitReport } from '../api/whistleblower';
 import VoiceRecorder from './VoiceRecorder';
 import { FaInfoCircle } from 'react-icons/fa';
+// Add this line to the beginning of the file to import useState
+
+
+// Make sure all buttons in the VoiceRecorder component have type="button" to prevent form submission
 
 // Form validation schema
 const reportSchema = yup.object().shape({
@@ -465,3 +470,4 @@ const ReportForm = ({ onSubmitSuccess }) => {
 };
 
 export default ReportForm;
+

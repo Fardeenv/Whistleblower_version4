@@ -144,20 +144,6 @@ router.get('/reports/:id', async (req, res, next) => {
   }
 });
 
-// Serve voice note files
-router.get('/voice-notes/:filename', (req, res) => {
-  const filePath = path.join(__dirname, '../../uploads/audio', req.params.filename);
-  
-  if (fs.existsSync(filePath)) {
-    res.sendFile(filePath);
-  } else {
-    res.status(404).json({
-      error: 'Not found',
-      message: 'Voice note file not found'
-    });
-  }
-});
-
 // Get chat history for a report
 router.get('/reports/:id/chat', async (req, res, next) => {
   try {
@@ -244,7 +230,7 @@ router.post('/reports/:id/chat', async (req, res, next) => {
   }
 });
 
-// Mark chat messages as read
+// Mark messages as read
 router.put('/reports/:id/chat/read', async (req, res, next) => {
   try {
     const { id } = req.params;

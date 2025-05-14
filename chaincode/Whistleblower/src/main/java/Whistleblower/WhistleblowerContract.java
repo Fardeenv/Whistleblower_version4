@@ -18,7 +18,7 @@ import java.util.HashMap;
     info = @Info(
         title = "Whistleblower Contract",
         description = "A whistleblower reporting system on blockchain",
-        version = "3.0"
+        version = "4.0"
     )
 )
 @Default
@@ -31,7 +31,9 @@ public class WhistleblowerContract implements ContractInterface {
         INVALID_ACCESS,
         INVALID_STATUS_CHANGE,
         INVESTIGATOR_NOT_ASSIGNED,
-        INVESTIGATOR_INELIGIBLE
+        INVESTIGATOR_INELIGIBLE,
+        ALREADY_PERMANENTLY_CLOSED,
+        NO_REWARD_WALLET
     }
     
     @Transaction()
@@ -65,7 +67,12 @@ public class WhistleblowerContract implements ContractInterface {
             "", // management summary
             previousInvestigators,
             reopenReasons,
-            false // not reopened
+            false, // not reopened
+            "", // no closure summary
+            false, // not permanently closed
+            "", // no reward note
+            0.0, // no reward amount
+            false // reward not processed
         );
         
         String reportState = genson.serialize(report);
@@ -128,7 +135,12 @@ public class WhistleblowerContract implements ContractInterface {
             "", // no management summary yet
             previousInvestigators,
             reopenReasons,
-            false // not reopened
+            false, // not reopened
+            "", // no closure summary
+            false, // not permanently closed
+            "", // no reward note
+            0.0, // no reward amount
+            false // reward not processed
         );
         
         reportState = genson.serialize(report);
@@ -199,7 +211,12 @@ public class WhistleblowerContract implements ContractInterface {
             oldReport.getManagementSummary(),
             oldReport.getPreviousInvestigators(),
             oldReport.getReopenReasons(),
-            oldReport.getIsReopened()
+            oldReport.getIsReopened(),
+            oldReport.getClosureSummary(),
+            oldReport.getPermanentlyClosed(),
+            oldReport.getRewardNote(),
+            oldReport.getRewardAmount(),
+            oldReport.getRewardProcessed()
         );
         
         String newReportState = genson.serialize(newReport);
@@ -246,7 +263,12 @@ public class WhistleblowerContract implements ContractInterface {
             oldReport.getManagementSummary(),
             oldReport.getPreviousInvestigators(),
             oldReport.getReopenReasons(),
-            oldReport.getIsReopened()
+            oldReport.getIsReopened(),
+            oldReport.getClosureSummary(),
+            oldReport.getPermanentlyClosed(),
+            oldReport.getRewardNote(),
+            oldReport.getRewardAmount(),
+            oldReport.getRewardProcessed()
         );
         
         String newReportState = genson.serialize(newReport);
@@ -305,7 +327,12 @@ public class WhistleblowerContract implements ContractInterface {
             summary,
             report.getPreviousInvestigators(),
             report.getReopenReasons(),
-            report.getIsReopened()
+            report.getIsReopened(),
+            report.getClosureSummary(),
+            report.getPermanentlyClosed(),
+            report.getRewardNote(),
+            report.getRewardAmount(),
+            report.getRewardProcessed()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
@@ -333,10 +360,17 @@ public class WhistleblowerContract implements ContractInterface {
         Whistleblower report = genson.deserialize(reportState, Whistleblower.class);
         
         // Check that the report is in a completed state
-        if (!report.getStatus().equals("completed")) {
+        if (!report.getStatus().equals("investigation_complete") && !report.getStatus().equals("completed")) {
             String errorMessage = String.format("Report %s is not in a completed state and cannot be reopened", reportId);
             System.out.println(errorMessage);
             throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVALID_STATUS_CHANGE.toString());
+        }
+        
+        // Check if permanently closed
+        if (report.getPermanentlyClosed()) {
+            String errorMessage = String.format("Report %s is permanently closed and cannot be reopened", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.ALREADY_PERMANENTLY_CLOSED.toString());
         }
         
         // Update the previous investigators list
@@ -373,7 +407,12 @@ public class WhistleblowerContract implements ContractInterface {
             report.getManagementSummary(),
             previousInvestigators,
             reopenReasons,
-            true // Mark as reopened
+            true, // Mark as reopened
+            report.getClosureSummary(),
+            false, // Not permanently closed
+            report.getRewardNote(),
+            report.getRewardAmount(),
+            report.getRewardProcessed()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
@@ -424,7 +463,7 @@ public class WhistleblowerContract implements ContractInterface {
             report.getDescription(),
             report.getSubmitter(),
             report.getDate(),
-            "completed",
+            "investigation_complete", // Changed from "completed" to "investigation_complete"
             report.getCriticality(),
             report.getRewardWallet(),
             report.getAssignedTo(),
@@ -441,12 +480,167 @@ public class WhistleblowerContract implements ContractInterface {
             report.getManagementSummary(),
             report.getPreviousInvestigators(),
             report.getReopenReasons(),
-            report.getIsReopened()
+            report.getIsReopened(),
+            report.getClosureSummary(),
+            report.getPermanentlyClosed(),
+            report.getRewardNote(),
+            report.getRewardAmount(),
+            report.getRewardProcessed()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
         stub.putStringState(reportId, updatedReportState);
         System.out.println("Investigation completed for report: " + updatedReport.getId());
+        
+        return updatedReport;
+    }
+    
+    @Transaction()
+    public Whistleblower permanentlyCloseCase(
+            final Context ctx, 
+            final String reportId, 
+            final String managementId,
+            final String closureSummary) {
+        
+        ChaincodeStub stub = ctx.getStub();
+        String reportState = stub.getStringState(reportId);
+        
+        if (reportState.isEmpty()) {
+            String errorMessage = String.format("Report with ID %s does not exist", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_NOT_FOUND.toString());
+        }
+        
+        Whistleblower report = genson.deserialize(reportState, Whistleblower.class);
+        
+        // Check if report is already permanently closed
+        if (report.getPermanentlyClosed()) {
+            String errorMessage = String.format("Report %s is already permanently closed", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.ALREADY_PERMANENTLY_CLOSED.toString());
+        }
+        
+     // Check that the report status is "investigation_complete"
+        if (!report.getStatus().equals("investigation_complete")) {
+            String errorMessage = String.format("Report %s is not in investigation_complete state", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVALID_STATUS_CHANGE.toString());
+        }
+        
+        // Create an updated report with permanently closed status
+        Whistleblower updatedReport = new Whistleblower(
+            report.getId(),
+            report.getTitle(),
+            report.getDescription(),
+            report.getSubmitter(),
+            report.getDate(),
+            "completed", // Change status to completed
+            report.getCriticality(),
+            report.getRewardWallet(),
+            report.getAssignedTo(),
+            report.getAssignedToName(),
+            report.getChatHistory(),
+            report.getVoiceNote(),
+            report.getHasVoiceNote(),
+            report.getDepartment(),
+            report.getLocation(),
+            report.getMonetaryValue(),
+            report.getRelationship(),
+            report.getEncounter(),
+            report.getAuthoritiesAware(),
+            report.getManagementSummary(),
+            report.getPreviousInvestigators(),
+            report.getReopenReasons(),
+            report.getIsReopened(),
+            closureSummary,
+            true, // Mark as permanently closed
+            report.getRewardNote(),
+            report.getRewardAmount(),
+            report.getRewardProcessed()
+        );
+        
+        String updatedReportState = genson.serialize(updatedReport);
+        stub.putStringState(reportId, updatedReportState);
+        System.out.println("Case permanently closed for report: " + updatedReport.getId());
+        
+        return updatedReport;
+    }
+    
+    @Transaction()
+    public Whistleblower processReward(
+            final Context ctx, 
+            final String reportId, 
+            final String managementId,
+            final String rewardNote,
+            final double rewardAmount) {
+        
+        ChaincodeStub stub = ctx.getStub();
+        String reportState = stub.getStringState(reportId);
+        
+        if (reportState.isEmpty()) {
+            String errorMessage = String.format("Report with ID %s does not exist", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.REPORT_NOT_FOUND.toString());
+        }
+        
+        Whistleblower report = genson.deserialize(reportState, Whistleblower.class);
+        
+        // Check if report is permanently closed
+        if (!report.getPermanentlyClosed()) {
+            String errorMessage = String.format("Report %s is not permanently closed", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.INVALID_STATUS_CHANGE.toString());
+        }
+        
+        // Check if report has a reward wallet
+        if (report.getRewardWallet() == null || report.getRewardWallet().trim().isEmpty()) {
+            String errorMessage = String.format("Report %s does not have a reward wallet", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, WhistleblowerErrors.NO_REWARD_WALLET.toString());
+        }
+        
+        // Check if reward is already processed
+        if (report.getRewardProcessed()) {
+            String errorMessage = String.format("Reward for report %s is already processed", reportId);
+            System.out.println(errorMessage);
+            throw new ChaincodeException(errorMessage, "REWARD_ALREADY_PROCESSED");
+        }
+        
+        // Create an updated report with reward information
+        Whistleblower updatedReport = new Whistleblower(
+            report.getId(),
+            report.getTitle(),
+            report.getDescription(),
+            report.getSubmitter(),
+            report.getDate(),
+            report.getStatus(),
+            report.getCriticality(),
+            report.getRewardWallet(),
+            report.getAssignedTo(),
+            report.getAssignedToName(),
+            report.getChatHistory(),
+            report.getVoiceNote(),
+            report.getHasVoiceNote(),
+            report.getDepartment(),
+            report.getLocation(),
+            report.getMonetaryValue(),
+            report.getRelationship(),
+            report.getEncounter(),
+            report.getAuthoritiesAware(),
+            report.getManagementSummary(),
+            report.getPreviousInvestigators(),
+            report.getReopenReasons(),
+            report.getIsReopened(),
+            report.getClosureSummary(),
+            report.getPermanentlyClosed(),
+            rewardNote,
+            rewardAmount,
+            true // Mark reward as processed
+        );
+        
+        String updatedReportState = genson.serialize(updatedReport);
+        stub.putStringState(reportId, updatedReportState);
+        System.out.println("Reward processed for report: " + updatedReport.getId());
         
         return updatedReport;
     }
@@ -499,7 +693,12 @@ public class WhistleblowerContract implements ContractInterface {
             report.getManagementSummary(),
             report.getPreviousInvestigators(),
             report.getReopenReasons(),
-            report.getIsReopened()
+            report.getIsReopened(),
+            report.getClosureSummary(),
+            report.getPermanentlyClosed(),
+            report.getRewardNote(),
+            report.getRewardAmount(),
+            report.getRewardProcessed()
         );
         
         String updatedReportState = genson.serialize(updatedReport);
@@ -563,7 +762,12 @@ public class WhistleblowerContract implements ContractInterface {
             report.getManagementSummary(),
             report.getPreviousInvestigators(),
             report.getReopenReasons(),
-            report.getIsReopened()
+            report.getIsReopened(),
+            report.getClosureSummary(),
+            report.getPermanentlyClosed(),
+            report.getRewardNote(),
+            report.getRewardAmount(),
+            report.getRewardProcessed()
         );
         
         String updatedReportState = genson.serialize(updatedReport);

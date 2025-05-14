@@ -6,6 +6,8 @@ import { getCurrentUser, hasRole } from '../services/auth';
 import ChatComponent from '../components/ChatComponent';
 import ManagementSummary from '../components/ManagementSummary';
 import ReopenInvestigation from '../components/ReopenInvestigation';
+import PermanentClosureForm from '../components/PermanentClosureForm';
+import RewardForm from '../components/RewardForm';
 import { toast } from 'react-toastify';
 import io from 'socket.io-client';
 
@@ -45,7 +47,15 @@ const ReportDetailPage = () => {
         socket.on('report_status_changed', (update) => {
           if (update.reportId === id) {
             fetchReport(); // Refresh the report data
-            toast.info(`Report status changed to: ${update.status.replace('_', ' ')}`);
+            toast.info(`Report status changed to: ${getStatusLabel(update.status)}`);
+          }
+        });
+        
+        // Listen for reward processing
+        socket.on('reward_processed', (update) => {
+          if (update.reportId === id) {
+            fetchReport(); // Refresh the report data
+            toast.success(`Reward of ${update.rewardAmount} bit processed successfully`);
           }
         });
       } catch (err) {
@@ -93,12 +103,7 @@ const ReportDetailPage = () => {
       setProcessing(true);
       const updatedReport = await completeInvestigation(id);
       setReport(updatedReport);
-      
-      if (updatedReport.rewardProcessed) {
-        toast.success('Investigation completed and reward processed');
-      } else {
-        toast.success('Investigation completed');
-      }
+      toast.success('Investigation completed successfully');
     } catch (err) {
       toast.error(err.message || 'Failed to complete investigation');
     } finally {
@@ -112,6 +117,21 @@ const ReportDetailPage = () => {
   
   const handleReopen = () => {
     navigate('/reports'); // Navigate to reports page after reopening
+  };
+  
+  const handlePermanentClosure = () => {
+    // Refresh the report data
+    getReportById(id).then(updatedReport => {
+      setReport(updatedReport);
+      toast.success('Case permanently closed');
+    });
+  };
+  
+  const handleReward = (result) => {
+    // Refresh the report data
+    getReportById(id).then(updatedReport => {
+      setReport(updatedReport);
+    });
   };
   
   const playVoiceNote = () => {
@@ -137,8 +157,10 @@ const ReportDetailPage = () => {
         return 'Pending Review';
       case 'under_investigation':
         return 'Under Investigation';
+      case 'investigation_complete':
+        return 'Investigation Complete';
       case 'completed':
-        return 'Investigation Completed';
+        return 'Permanently Closed';
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -159,7 +181,9 @@ const ReportDetailPage = () => {
   const isAssigned = isInvestigator && report.assignedTo === currentUser?.id;
   const isPending = report.status === 'pending';
   const isUnderInvestigation = report.status === 'under_investigation';
+  const isInvestigationComplete = report.status === 'investigation_complete';
   const isCompleted = report.status === 'completed';
+  const isPermanentlyClosed = report.permanentlyClosed;
   
   return (
     <div className="container">
@@ -175,6 +199,7 @@ const ReportDetailPage = () => {
         <div className="status-badge">
           Status: <span className={`status-${report.status}`}>{getStatusLabel(report.status)}</span>
           {report.isReopened && <span className="reopened-badge">Reopened</span>}
+          {report.permanentlyClosed && <span className="closed-badge">Permanently Closed</span>}
         </div>
         
         <div className="report-info">
@@ -263,6 +288,13 @@ const ReportDetailPage = () => {
           <div className="wallet-info">
             <strong>Reward Wallet:</strong> 
             <span className="wallet-address">{report.rewardWallet}</span>
+            
+            {report.rewardProcessed && (
+              <div className="reward-processed">
+                <strong>Reward Processed:</strong> {report.rewardAmount} bit
+                <p><strong>Note:</strong> {report.rewardNote}</p>
+              </div>
+            )}
           </div>
         )}
         
@@ -294,17 +326,45 @@ const ReportDetailPage = () => {
               reportId={report.id}
               summary={report.managementSummary}
               onSummaryAdded={handleSummaryAdded}
-              disabled={!isAssigned || isCompleted}
+              disabled={!isAssigned || !isUnderInvestigation}
             />
           </div>
         )}
         
-        {isManagement && isCompleted && (
+        {isManagement && isInvestigationComplete && !isPermanentlyClosed && (
+          <div className="permanent-closure-section">
+            <PermanentClosureForm 
+              reportId={report.id}
+              onClose={handlePermanentClosure}
+            />
+          </div>
+        )}
+        
+        {isManagement && isPermanentlyClosed && report.rewardWallet && !report.rewardProcessed && (
+          <div className="reward-section">
+            <RewardForm 
+              reportId={report.id}
+              rewardWallet={report.rewardWallet}
+              onReward={handleReward}
+            />
+          </div>
+        )}
+        
+        {isManagement && (isInvestigationComplete || isCompleted) && !isPermanentlyClosed && (
           <div className="reopen-section">
             <ReopenInvestigation 
               reportId={report.id}
               onReopen={handleReopen}
             />
+          </div>
+        )}
+        
+        {report.closureSummary && (
+          <div className="closure-summary-section">
+            <h3>Closure Summary</h3>
+            <div className="summary-content">
+              <p>{report.closureSummary}</p>
+            </div>
           </div>
         )}
         

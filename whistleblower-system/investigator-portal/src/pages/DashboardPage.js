@@ -14,6 +14,7 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const isInvestigator = hasRole('investigator');
+  const isManagement = hasRole('management');
   
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -44,7 +45,7 @@ const DashboardPage = () => {
   }, [isInvestigator]);
   
   const handleInvestigate = (reportId) => {
-    // This would be handled better in a real app with state management
+    // Navigate to report details
     toast.info(`Navigate to report ${reportId} to investigate`);
   };
   
@@ -70,7 +71,7 @@ const DashboardPage = () => {
               color="#3498db"
             />
             <StatisticsCard 
-              title="Pending Reports" 
+              title="Pending" 
               value={statistics.byStatus.pending}
               icon="⏳"
               color="#fdcb6e"
@@ -82,12 +83,24 @@ const DashboardPage = () => {
               color="#74b9ff"
             />
             <StatisticsCard 
-              title="Completed" 
-              value={statistics.byStatus.completed}
-              icon="✅"
+              title="Investigation Complete" 
+              value={statistics.byStatus.investigation_complete}
+              icon="✓"
               color="#55efc4"
             />
+            <StatisticsCard 
+              title="Permanently Closed" 
+              value={statistics.byStatus.completed}
+              icon="🔒"
+              color="#2ecc71"
+            />
           </div>
+          
+          {isManagement && statistics.rewardBalance !== undefined && (
+            <div className="reward-balance-card">
+              <h3>Reward Balance: <span className="balance">{statistics.rewardBalance} bit</span></h3>
+            </div>
+          )}
           
           <StatisticsChart data={statistics} />
         </>

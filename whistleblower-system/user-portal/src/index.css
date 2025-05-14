@@ -954,3 +954,47 @@ textarea {
   font-weight: 600;
   margin-left: 10px;
 }
+/* Status badges */
+.status-investigation_complete {
+  background-color: #c5e1a5;
+  color: #33691e;
+}
+
+.closed-badge {
+  display: inline-block;
+  background-color: #d1f1da;
+  color: #27ae60;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+/* Reward received */
+.reward-processed {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f4f8ff;
+  border-radius: 8px;
+  border-left: 4px solid #f39c12;
+}
+
+.reward-processed h4 {
+  color: #f39c12;
+  margin-bottom: 10px;
+}
+
+/* Closure Summary */
+.closure-summary-section {
+  margin: 30px 0;
+  padding: 25px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+}
+
+.closure-summary-section h3 {
+  color: #3498db;
+  margin-bottom: 15px;
+}

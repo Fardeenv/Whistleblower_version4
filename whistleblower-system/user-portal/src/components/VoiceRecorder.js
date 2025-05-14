@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaMicrophone, FaStop, FaPlay, FaTrash } from 'react-icons/fa';
 
-const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
+const VoiceRecorder = ({ onRecordingComplete }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -13,9 +13,8 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
   const audioRef = useRef(new Audio());
   
   useEffect(() => {
-    console.log('VoiceRecorder mounted, onVoiceNote:', typeof onVoiceNote);
+    // Clean up audio and timer on unmount
     return () => {
-      console.log('VoiceRecorder unmounting');
       if (audioRef.current) {
         audioRef.current.pause();
       }
@@ -31,7 +30,10 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
     return `${mins}:${secs}`;
   };
   
-  const startRecording = async () => {
+  const startRecording = async (e) => {
+    // Prevent form submission
+    e.preventDefault();
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaRecorderRef.current = new MediaRecorder(stream);
@@ -44,21 +46,20 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
       };
       
       mediaRecorderRef.current.onstop = () => {
-        console.log('Recording stopped, calling onVoiceNote');
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
         setAudioBlob(audioBlob);
-        if (typeof onVoiceNote === 'function') {
-          onVoiceNote(audioBlob);
-        } else {
-          console.warn('onVoiceNote is not a function:', onVoiceNote);
-        }
+        onRecordingComplete(audioBlob);
+        
+        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
       
+      // Start recording
       mediaRecorderRef.current.start();
       setIsRecording(true);
       setRecordingTime(0);
       
+      // Start timer
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
@@ -68,18 +69,25 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
     }
   };
   
-  const stopRecording = () => {
+  const stopRecording = (e) => {
+    // Prevent form submission
+    e.preventDefault();
+    
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
+      // Stop timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     }
   };
   
-  const playRecording = () => {
+  const playRecording = (e) => {
+    // Prevent form submission
+    e.preventDefault();
+    
     if (audioBlob) {
       const url = URL.createObjectURL(audioBlob);
       audioRef.current.src = url;
@@ -93,7 +101,10 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
     }
   };
   
-  const stopPlayback = () => {
+  const stopPlayback = (e) => {
+    // Prevent form submission
+    e.preventDefault();
+    
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -101,13 +112,12 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
     }
   };
   
-  const deleteRecording = () => {
+  const deleteRecording = (e) => {
+    // Prevent form submission
+    e.preventDefault();
+    
     setAudioBlob(null);
-    if (typeof onVoiceNote === 'function') {
-      onVoiceNote(null);
-    } else {
-      console.warn('onVoiceNote is not a function:', onVoiceNote);
-    }
+    onRecordingComplete(null);
     
     if (audioRef.current) {
       audioRef.current.pause();
@@ -122,7 +132,7 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
       {!audioBlob ? (
         <div className="recorder-controls">
           <button 
-            type="button"
+            type="button" // Important! Prevent form submission
             className={`record-button ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
           >
@@ -145,7 +155,7 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
             
             <div className="playback-controls">
               <button 
-                type="button"
+                type="button" // Important! Prevent form submission
                 className="playback-button"
                 onClick={isPlaying ? stopPlayback : playRecording}
               >
@@ -153,7 +163,7 @@ const VoiceRecorder = ({ onVoiceNote = () => {} }) => {
               </button>
               
               <button 
-                type="button"
+                type="button" // Important! Prevent form submission
                 className="delete-button"
                 onClick={deleteRecording}
               >

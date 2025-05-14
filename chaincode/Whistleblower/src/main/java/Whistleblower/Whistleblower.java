@@ -77,6 +77,21 @@ public class Whistleblower {
     @Property
     private final boolean isReopened;
     
+    @Property
+    private final String closureSummary;
+    
+    @Property
+    private final boolean permanentlyClosed;
+    
+    @Property
+    private final String rewardNote;
+    
+    @Property
+    private final double rewardAmount;
+    
+    @Property
+    private final boolean rewardProcessed;
+    
     public Whistleblower(
             @JsonProperty("id") final String id,
             @JsonProperty("title") final String title,
@@ -100,7 +115,12 @@ public class Whistleblower {
             @JsonProperty("managementSummary") final String managementSummary,
             @JsonProperty("previousInvestigators") final List<String> previousInvestigators,
             @JsonProperty("reopenReasons") final List<String> reopenReasons,
-            @JsonProperty("isReopened") final boolean isReopened) {
+            @JsonProperty("isReopened") final boolean isReopened,
+            @JsonProperty("closureSummary") final String closureSummary,
+            @JsonProperty("permanentlyClosed") final boolean permanentlyClosed,
+            @JsonProperty("rewardNote") final String rewardNote,
+            @JsonProperty("rewardAmount") final double rewardAmount,
+            @JsonProperty("rewardProcessed") final boolean rewardProcessed) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -124,6 +144,11 @@ public class Whistleblower {
         this.previousInvestigators = previousInvestigators != null ? previousInvestigators : new ArrayList<>();
         this.reopenReasons = reopenReasons != null ? reopenReasons : new ArrayList<>();
         this.isReopened = isReopened;
+        this.closureSummary = closureSummary;
+        this.permanentlyClosed = permanentlyClosed;
+        this.rewardNote = rewardNote;
+        this.rewardAmount = rewardAmount;
+        this.rewardProcessed = rewardProcessed;
     }
     
     // Getters
@@ -150,6 +175,11 @@ public class Whistleblower {
     public List<String> getPreviousInvestigators() { return previousInvestigators; }
     public List<String> getReopenReasons() { return reopenReasons; }
     public boolean getIsReopened() { return isReopened; }
+    public String getClosureSummary() { return closureSummary; }
+    public boolean getPermanentlyClosed() { return permanentlyClosed; }
+    public String getRewardNote() { return rewardNote; }
+    public double getRewardAmount() { return rewardAmount; }
+    public boolean getRewardProcessed() { return rewardProcessed; }
     
     @Override
     public boolean equals(final Object obj) {
@@ -178,7 +208,12 @@ public class Whistleblower {
                Objects.equals(managementSummary, other.managementSummary) &&
                Objects.equals(previousInvestigators, other.previousInvestigators) &&
                Objects.equals(reopenReasons, other.reopenReasons) &&
-               isReopened == other.isReopened;
+               isReopened == other.isReopened &&
+               Objects.equals(closureSummary, other.closureSummary) &&
+               permanentlyClosed == other.permanentlyClosed &&
+               Objects.equals(rewardNote, other.rewardNote) &&
+               rewardAmount == other.rewardAmount &&
+               rewardProcessed == other.rewardProcessed;
     }
     
     @Override
@@ -187,12 +222,13 @@ public class Whistleblower {
                           criticality, rewardWallet, assignedTo, assignedToName, chatHistory,
                           voiceNote, hasVoiceNote, department, location,
                           monetaryValue, relationship, encounter, authoritiesAware,
-                          managementSummary, previousInvestigators, reopenReasons, isReopened);
+                          managementSummary, previousInvestigators, reopenReasons, isReopened,
+                          closureSummary, permanentlyClosed, rewardNote, rewardAmount, rewardProcessed);
     }
     
     @Override
     public String toString() {
-        return String.format("Whistleblower [id=%s, title=%s, submitter=%s, date=%s, status=%s, criticality=%d, hasVoiceNote=%b, isReopened=%b]", 
-                           id, title, submitter, date, status, criticality, hasVoiceNote, isReopened);
+        return String.format("Whistleblower [id=%s, title=%s, submitter=%s, date=%s, status=%s, criticality=%d, hasVoiceNote=%b, isReopened=%b, permanentlyClosed=%b]", 
+                           id, title, submitter, date, status, criticality, hasVoiceNote, isReopened, permanentlyClosed);
     }
 }
