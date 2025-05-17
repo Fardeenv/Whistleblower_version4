@@ -55,7 +55,7 @@ const ReportDetailPage = () => {
         socket.on('reward_processed', (update) => {
           if (update.reportId === id) {
             fetchReport(); // Refresh the report data
-            toast.success(`Reward of ${update.rewardAmount} bit processed successfully`);
+            toast.success(`Reward of ${update.rewardAmount} BTC processed successfully`);
           }
         });
       } catch (err) {
@@ -291,7 +291,7 @@ const ReportDetailPage = () => {
             
             {report.rewardProcessed && (
               <div className="reward-processed">
-                <strong>Reward Processed:</strong> {report.rewardAmount} bit
+                <strong>Reward Processed:</strong> {report.rewardAmount} BTC
                 <p><strong>Note:</strong> {report.rewardNote}</p>
               </div>
             )}

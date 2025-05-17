@@ -98,7 +98,7 @@ const DashboardPage = () => {
           
           {isManagement && statistics.rewardBalance !== undefined && (
             <div className="reward-balance-card">
-              <h3>Reward Balance: <span className="balance">{statistics.rewardBalance} bit</span></h3>
+              <h3>Reward Balance: <span className="balance">{statistics.rewardBalance} BTC</span></h3>
             </div>
           )}
           

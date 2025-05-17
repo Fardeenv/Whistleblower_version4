@@ -60,7 +60,7 @@ const RewardForm = ({ reportId, rewardWallet, onReward }) => {
     <div className="reward-form">
       <h3>Process Reward</h3>
       <p>Wallet address: <span className="wallet-address">{rewardWallet}</span></p>
-      <p>Available balance: <span className="balance">{balance} bit</span></p>
+      <p>Available balance: <span className="balance">{balance} BTC</span></p>
       
       {error && <div className="error-message">{error}</div>}
       
