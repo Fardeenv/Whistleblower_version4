@@ -3,25 +3,12 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api/whistleblower';
 
 /**
- * Submit a new whistleblower report with optional voice note
- * @param {Object} reportData - Report data including title, description, etc.
- * @param {File} voiceNote - Voice note audio file (optional)
+ * Submit a new whistleblower report with optional attachments
+ * @param {FormData} formData - Form data including all report details and files
  * @returns {Promise<Object>} - The submitted report
  */
-export const submitReport = async (reportData, voiceNote = null) => {
+export const submitReport = async (formData) => {
   try {
-    const formData = new FormData();
-    
-    // Add text fields to form data
-    Object.keys(reportData).forEach(key => {
-      formData.append(key, reportData[key]);
-    });
-    
-    // Add voice note if provided
-    if (voiceNote) {
-      formData.append('voiceNote', voiceNote);
-    }
-    
     const response = await axios.post(`${API_URL}/reports`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
@@ -35,7 +22,7 @@ export const submitReport = async (reportData, voiceNote = null) => {
 
 /**
  * Get a report by its ID
- * @param {string} id - Report ID 
+ * @param {string} id - Report ID
  * @returns {Promise<Object>} - The report data
  */
 export const getReportById = async (id) => {
@@ -62,16 +49,17 @@ export const getChatHistory = async (id) => {
 };
 
 /**
- * Send a chat message
+ * Send a chat message with optional attachment
  * @param {string} reportId - Report ID
- * @param {string} content - Message content
+ * @param {FormData} formData - FormData containing message content and/or attachment
  * @returns {Promise<Object>} - The sent message
  */
-export const sendChatMessage = async (reportId, content) => {
+export const sendChatMessage = async (reportId, formData) => {
   try {
-    const response = await axios.post(`${API_URL}/reports/${reportId}/chat`, {
-      sender: 'whistleblower',
-      content
+    const response = await axios.post(`${API_URL}/reports/${reportId}/chat`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
     });
     return response.data;
   } catch (error) {

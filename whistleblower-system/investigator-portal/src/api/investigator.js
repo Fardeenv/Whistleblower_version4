@@ -81,7 +81,7 @@ export const getReportById = async (id) => {
 };
 
 /**
- * Investigate a report 
+ * Investigate a report
  * @param {string} id - Report ID
  * @returns {Promise<Object>} - Updated report
  */
@@ -155,8 +155,8 @@ export const permanentlyCloseCase = async (id, closureSummary) => {
  */
 export const processReward = async (id, rewardNote, rewardAmount) => {
   try {
-    const response = await axios.post(`${API_URL}/reports/${id}/process-reward`, 
-      { rewardNote, rewardAmount }, 
+    const response = await axios.post(`${API_URL}/reports/${id}/process-reward`,
+      { rewardNote, rewardAmount },
       { headers: getAuthHeader() }
     );
     return response.data;
@@ -183,17 +183,18 @@ export const reopenInvestigation = async (id, reason) => {
 };
 
 /**
- * Send a chat message
+ * Send a chat message with optional attachment
  * @param {string} reportId - Report ID
- * @param {string} content - Message content
+ * @param {FormData} formData - Form data with message content and optional attachment
  * @returns {Promise<Object>} - The sent message
  */
-export const sendChatMessage = async (reportId, content) => {
+export const sendChatMessage = async (reportId, formData) => {
   try {
-    const response = await axios.post(`${API_URL}/reports/${reportId}/chat`, {
-      content
-    }, {
-      headers: getAuthHeader()
+    const response = await axios.post(`${API_URL}/reports/${reportId}/chat`, formData, {
+      headers: {
+        ...getAuthHeader(),
+        'Content-Type': 'multipart/form-data'
+      }
     });
     return response.data;
   } catch (error) {

@@ -1,26 +1,21 @@
-import React, { useState } from 'react';
-import { FaPause, FaPlay, FaStop, FaMicrophone, FaTrash } from 'react-icons/fa';
+import React, { useState, useRef } from 'react';
+import { FaPause, FaPlay, FaStop, FaMicrophone, FaTrash, FaFileUpload, FaTimesCircle, FaInfoCircle, FaMicrophoneAlt } from 'react-icons/fa';
 import { useForm, useFieldArray } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { submitReport } from '../api/whistleblower';
 import VoiceRecorder from './VoiceRecorder';
-import { FaInfoCircle } from 'react-icons/fa';
-// Add this line to the beginning of the file to import useState
-
-
-// Make sure all buttons in the VoiceRecorder component have type="button" to prevent form submission
 
 // Form validation schema
 const reportSchema = yup.object().shape({
-  title: yup.string().when('hasVoiceNote', {
-    is: (hasVoiceNote) => hasVoiceNote === false,
-    then: () => yup.string().required('Title is required when no voice note is provided'),
+  title: yup.string().when(['hasVoiceNote', 'hasAttachments'], {
+    is: (hasVoiceNote, hasAttachments) => !hasVoiceNote && !hasAttachments,
+    then: () => yup.string().required('Title is required when no voice note or attachments are provided'),
     otherwise: () => yup.string().notRequired(),
   }),
-  description: yup.string().when('hasVoiceNote', {
-    is: (hasVoiceNote) => hasVoiceNote === false,
-    then: () => yup.string().required('Description is required when no voice note is provided'),
+  description: yup.string().when(['hasVoiceNote', 'hasAttachments'], {
+    is: (hasVoiceNote, hasAttachments) => !hasVoiceNote && !hasAttachments,
+    then: () => yup.string().required('Description is required when no voice note or attachments are provided'),
     otherwise: () => yup.string().notRequired(),
   }),
   submitter: yup.string(),
@@ -35,6 +30,7 @@ const reportSchema = yup.object().shape({
   encounter: yup.string(),
   authoritiesAware: yup.boolean().default(false),
   hasVoiceNote: yup.boolean().default(false),
+  hasAttachments: yup.boolean().default(false),
   period: yup.string().optional(),
   peopleAware: yup.string().optional(),
   anonymous: yup.string().optional(),
@@ -51,8 +47,13 @@ const ReportForm = ({ onSubmitSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [voiceNote, setVoiceNote] = useState(null);
+  const [attachments, setAttachments] = useState([]);
+  const [useVoiceToText, setUseVoiceToText] = useState(false);
+  const [voiceToTextResult, setVoiceToTextResult] = useState('');
+  const [isRecordingText, setIsRecordingText] = useState(false);
+  const fileInputRef = useRef(null);
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue, control } = useForm({
+  const { register, handleSubmit, formState: { errors }, reset, setValue, control, watch } = useForm({
     resolver: yupResolver(reportSchema),
     defaultValues: {
       title: '',
@@ -69,6 +70,7 @@ const ReportForm = ({ onSubmitSuccess }) => {
       encounter: '',
       authoritiesAware: false,
       hasVoiceNote: false,
+      hasAttachments: false,
       period: 'Less than a month ago',
       peopleAware: 'not_aware',
       anonymous: 'anonymous',
@@ -91,15 +93,143 @@ const ReportForm = ({ onSubmitSuccess }) => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const files = e.target.files;
+    
+    if (files.length > 0) {
+      // Convert FileList to array and add to attachments
+      const newAttachments = [...attachments];
+      
+      for (let i = 0; i < files.length; i++) {
+        // Check file size (15MB limit)
+        if (files[i].size > 15 * 1024 * 1024) {
+          setError(`File ${files[i].name} exceeds 15MB size limit`);
+          continue;
+        }
+        
+        newAttachments.push(files[i]);
+      }
+      
+      setAttachments(newAttachments);
+      setValue('hasAttachments', newAttachments.length > 0);
+    }
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveAttachment = (index) => {
+    const newAttachments = [...attachments];
+    newAttachments.splice(index, 1);
+    setAttachments(newAttachments);
+    setValue('hasAttachments', newAttachments.length > 0);
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes < 1024) return bytes + ' bytes';
+    else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    else return (bytes / 1048576).toFixed(1) + ' MB';
+  };
+
+  // Voice to text functions
+  const startSpeechRecognition = () => {
+    // Check if the browser supports the Web Speech API
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      setError('Voice-to-text is not supported in this browser');
+      return;
+    }
+
+    setIsRecordingText(true);
+
+    // Create a new speech recognition instance
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    let finalTranscript = '';
+
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      setVoiceToTextResult(finalTranscript + interimTranscript);
+      setValue('description', finalTranscript + interimTranscript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error', event.error);
+      setIsRecordingText(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecordingText(false);
+    };
+
+    recognition.start();
+
+    // Store the recognition instance to stop it later
+    window.recognitionInstance = recognition;
+  };
+
+  const stopSpeechRecognition = () => {
+    if (window.recognitionInstance) {
+      window.recognitionInstance.stop();
+      setIsRecordingText(false);
+    }
+  };
+
   const onSubmit = async (data) => {
     console.log('Form submitted:', data);
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const result = await submitReport(data, voiceNote);
+      // Create a FormData object to handle file uploads
+      const formData = new FormData();
+      
+      // Add text fields to the form data
+      Object.keys(data).forEach(key => {
+        if (key !== 'hasVoiceNote' && key !== 'hasAttachments' && key !== 'people') {
+          formData.append(key, data[key]);
+        }
+      });
+      
+      // Add the people array as JSON
+      formData.append('people', JSON.stringify(data.people));
+      
+      // Add voice note if present
+      if (voiceNote) {
+        formData.append('voiceNote', voiceNote);
+      }
+      
+      // Add voice to text result if present
+      if (voiceToTextResult) {
+        formData.append('voiceToText', voiceToTextResult);
+      }
+      
+      // Add attachments if present
+      attachments.forEach(file => {
+        formData.append('attachments', file);
+      });
+
+      const result = await submitReport(formData);
       reset();
       setVoiceNote(null);
+      setAttachments([]);
+      setVoiceToTextResult('');
       onSubmitSuccess(result);
     } catch (err) {
       setError(err.message || 'An error occurred while submitting the report.');
@@ -405,13 +535,41 @@ const ReportForm = ({ onSubmitSuccess }) => {
 
           <div className="form-group">
             <label htmlFor="description">Detailed Description</label>
-            <textarea
-              id="description"
-              {...register('description')}
-              rows="8"
-              placeholder="Provide details about the incident or concern. Include dates, names, locations, and any other relevant information."
-            ></textarea>
+            <div className="description-container">
+              <textarea
+                id="description"
+                {...register('description')}
+                rows="8"
+                placeholder="Provide details about the incident or concern. Include dates, names, locations, and any other relevant information."
+                value={watch('description')}
+              ></textarea>
+              
+              <div className="voice-to-text-controls">
+                {!isRecordingText ? (
+                  <button 
+                    type="button" 
+                    className="voice-to-text-button"
+                    onClick={startSpeechRecognition}
+                  >
+                    <FaMicrophoneAlt /> Voice to Text
+                  </button>
+                ) : (
+                  <button 
+                    type="button" 
+                    className="voice-to-text-button recording"
+                    onClick={stopSpeechRecognition}
+                  >
+                    <FaStop /> Stop Recording
+                  </button>
+                )}
+              </div>
+            </div>
             {errors.description && <span className="error">{errors.description.message}</span>}
+            {isRecordingText && (
+              <div className="recording-indicator">
+                <span className="pulse"></span> Listening... (Speak clearly into your microphone)
+              </div>
+            )}
           </div>
 
           <div className="form-group voice-note-section">
@@ -422,6 +580,53 @@ const ReportForm = ({ onSubmitSuccess }) => {
             <div className="form-help">
               <FaInfoCircle /> You can submit a voice note instead of typing if you prefer.
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>File Attachments</label>
+            <div className="file-upload-container">
+              <input
+                type="file"
+                id="file-upload"
+                onChange={handleFileChange}
+                multiple
+                style={{ display: 'none' }}
+                ref={fileInputRef}
+              />
+              <button
+                type="button"
+                className="file-upload-button"
+                onClick={() => fileInputRef.current.click()}
+              >
+                <FaFileUpload /> Upload Files
+              </button>
+              <div className="form-help">
+                <FaInfoCircle /> Supported file types: PDF, Word, Excel, PowerPoint, images, and text files (Max 15MB each)
+              </div>
+            </div>
+            
+            {attachments.length > 0 && (
+              <div className="attachments-list">
+                <h4>Attached Files:</h4>
+                <ul>
+                  {attachments.map((file, index) => (
+                    <li key={index}>
+                      <div className="attachment-item">
+                        <span className="attachment-name">{file.name}</span>
+                        <span className="attachment-size">({formatFileSize(file.size)})</span>
+                        <button
+                          type="button"
+                          className="remove-attachment-button"
+                          onClick={() => handleRemoveAttachment(index)}
+                        >
+                          <FaTimesCircle />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 
@@ -470,4 +675,3 @@ const ReportForm = ({ onSubmitSuccess }) => {
 };
 
 export default ReportForm;
-

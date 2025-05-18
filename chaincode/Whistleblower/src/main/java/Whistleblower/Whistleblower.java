@@ -10,88 +10,95 @@ import java.util.List;
 public class Whistleblower {
     @Property
     private final String id;
-    
+
     @Property
     private final String title;
-    
+
     @Property
     private final String description;
-    
+
     @Property
     private final String submitter;
-    
+
     @Property
     private final String date;
-    
+
     @Property
     private final String status;
-    
+
     @Property
     private final int criticality;
-    
+
     @Property
     private final String rewardWallet;
-    
+
     @Property
     private final String assignedTo;
-    
+
     @Property
     private final String assignedToName;
-    
+
     @Property
     private final List<ChatMessage> chatHistory;
-    
+
     @Property
     private final String voiceNote;
-    
+
     @Property
     private final boolean hasVoiceNote;
-    
+
     @Property
     private final String department;
-    
+
     @Property
     private final String location;
-    
+
     @Property
     private final String monetaryValue;
-    
+
     @Property
     private final String relationship;
-    
+
     @Property
     private final String encounter;
-    
+
     @Property
     private final boolean authoritiesAware;
-    
+
     @Property
     private final String managementSummary;
-    
+
     @Property
     private final List<String> previousInvestigators;
-    
+
     @Property
     private final List<String> reopenReasons;
-    
+
     @Property
     private final boolean isReopened;
-    
+
     @Property
     private final String closureSummary;
-    
+
     @Property
     private final boolean permanentlyClosed;
-    
+
     @Property
     private final String rewardNote;
-    
+
     @Property
     private final double rewardAmount;
-    
+
     @Property
     private final boolean rewardProcessed;
     
+    // New fields for file attachments
+    @Property
+    private final List<FileAttachment> attachments;
+    
+    @Property
+    private final String voiceToText;
+
     public Whistleblower(
             @JsonProperty("id") final String id,
             @JsonProperty("title") final String title,
@@ -120,7 +127,9 @@ public class Whistleblower {
             @JsonProperty("permanentlyClosed") final boolean permanentlyClosed,
             @JsonProperty("rewardNote") final String rewardNote,
             @JsonProperty("rewardAmount") final double rewardAmount,
-            @JsonProperty("rewardProcessed") final boolean rewardProcessed) {
+            @JsonProperty("rewardProcessed") final boolean rewardProcessed,
+            @JsonProperty("attachments") final List<FileAttachment> attachments,
+            @JsonProperty("voiceToText") final String voiceToText) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -149,8 +158,10 @@ public class Whistleblower {
         this.rewardNote = rewardNote;
         this.rewardAmount = rewardAmount;
         this.rewardProcessed = rewardProcessed;
+        this.attachments = attachments != null ? attachments : new ArrayList<>();
+        this.voiceToText = voiceToText;
     }
-    
+
     // Getters
     public String getId() { return id; }
     public String getTitle() { return title; }
@@ -180,7 +191,9 @@ public class Whistleblower {
     public String getRewardNote() { return rewardNote; }
     public double getRewardAmount() { return rewardAmount; }
     public boolean getRewardProcessed() { return rewardProcessed; }
-    
+    public List<FileAttachment> getAttachments() { return attachments; }
+    public String getVoiceToText() { return voiceToText; }
+
     @Override
     public boolean equals(final Object obj) {
         if (this == obj) return true;
@@ -213,22 +226,25 @@ public class Whistleblower {
                permanentlyClosed == other.permanentlyClosed &&
                Objects.equals(rewardNote, other.rewardNote) &&
                rewardAmount == other.rewardAmount &&
-               rewardProcessed == other.rewardProcessed;
+               rewardProcessed == other.rewardProcessed &&
+               Objects.equals(attachments, other.attachments) &&
+               Objects.equals(voiceToText, other.voiceToText);
     }
-    
+
     @Override
     public int hashCode() {
-        return Objects.hash(id, title, description, submitter, date, status, 
+        return Objects.hash(id, title, description, submitter, date, status,
                           criticality, rewardWallet, assignedTo, assignedToName, chatHistory,
                           voiceNote, hasVoiceNote, department, location,
                           monetaryValue, relationship, encounter, authoritiesAware,
                           managementSummary, previousInvestigators, reopenReasons, isReopened,
-                          closureSummary, permanentlyClosed, rewardNote, rewardAmount, rewardProcessed);
+                          closureSummary, permanentlyClosed, rewardNote, rewardAmount, rewardProcessed,
+                          attachments, voiceToText);
     }
-    
+
     @Override
     public String toString() {
-        return String.format("Whistleblower [id=%s, title=%s, submitter=%s, date=%s, status=%s, criticality=%d, hasVoiceNote=%b, isReopened=%b, permanentlyClosed=%b]", 
+        return String.format("Whistleblower [id=%s, title=%s, submitter=%s, date=%s, status=%s, criticality=%d, hasVoiceNote=%b, isReopened=%b, permanentlyClosed=%b]",
                            id, title, submitter, date, status, criticality, hasVoiceNote, isReopened, permanentlyClosed);
     }
 }
